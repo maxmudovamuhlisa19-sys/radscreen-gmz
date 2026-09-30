@@ -231,6 +231,15 @@ window.Auth = (() => {
 
   function renderBadge() {
     const b = $('#userBadge');
+    const adminTab = document.querySelector('[data-tab="admin"]');
+    if (adminTab) {
+      const isAdmin = !!(user && user.login === 'sardor');
+      adminTab.style.display = isAdmin ? '' : 'none';
+      if (!isAdmin && adminTab.classList.contains('active')) {
+        const mon = document.querySelector('[data-tab="monitor"]');
+        if (mon) mon.click();
+      }
+    }
     if (!b) return;
     if (!user) { b.hidden = true; return; }
     b.hidden = false;

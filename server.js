@@ -143,10 +143,11 @@ async function handleAuth(req, res, action, method, subId) {
     return user ? send(res, 200, publicUser(user)) : send(res, 401, { error: 'Sessiya muddati tugagan' });
   }
 
-  // Admin: foydalanuvchilar ro'yxati va o'chirish
+  // Admin: foydalanuvchilar ro'yxati va o'chirish (faqat login=sardor)
   if (action === 'users') {
     const me = authUser(req);
     if (!me) return send(res, 401, { error: 'Kirish talab qilinadi (token)' });
+    if (me.login !== 'sardor') return send(res, 403, { error: "Ruxsat yo'q — faqat admin" });
     const rows = readJson(DB.users);
     if (method === 'GET') {
       return send(res, 200, rows
