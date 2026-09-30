@@ -1,0 +1,38 @@
+[
+  {
+    "id": "muo3gn1wmlo3so",
+    "createdAt": "2026-09-30T12:41:23.636Z",
+    "patient": null,
+    "riskLabel": "Xavfsiz",
+    "riskKey": "safe",
+    "riskColor": "#22c55e",
+    "healthLoss": 15.5,
+    "cancerRiskPercent": 0.007,
+    "rate": 0.16,
+    "dayPercent": 0,
+    "yearPercent": 0,
+    "dose": 0.0038,
+    "icd": [
+      "Z00.0 Umumiy tibbiy ko'rik"
+    ],
+    "tests": [
+      "Umumiy qon tahlili (leykotsit, trombosit)",
+      "Biokimyoviy tahlil (jigar, buyrak funktsiyasi)",
+      "EKG va yurak UTT"
+    ],
+    "meds": [],
+    "deadline": "Doimiy profilaktik nazorat",
+    "place": "Profilaktik kuzatuv",
+    "note": "O'lchov: 0.16 µSv/soat (fon atrofi: 0.16 µSv/soat). Sutkalik doza: 0.0038 mSv, bugungi me'yorda 0%. Yillik doza: 1.402 mSv (aholi limitiga nisbatan 0%). Sog'liq yo'qotish darajasi: 15.5% (Xavfsiz). LNT bo'yicha qo'shimcha saraton xavfi: 0.007%. Vizual skrining bali: 56.1/100.",
+    "patientName": "—",
+    "status": "done",
+    "analysis": {
+      "rate": 0.16,
+      "healthLoss": 15.5,
+      "riskKey": "safe",
+      "dayPercent": 0,
+      "cancerRiskPercent": 0.007
+    },
+    "updatedAt": "2026-09-30T12:44:50.423Z"
+  }
+]
