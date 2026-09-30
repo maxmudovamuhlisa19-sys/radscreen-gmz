@@ -1228,5 +1228,27 @@
     "token": "7247c5f46f10d64c9a815de7ba22779a9d4232ebc53c890d",
     "face": null,
     "createdAt": "2026-09-30T21:20:07.263Z"
+  },
+  {
+    "id": "muomd0r3zfrtep",
+    "login": "smucpnq1",
+    "name": "Test Foydalanuvchi",
+    "role": "operator",
+    "salt": "27a442eb09a1c320ee6a91bfe1e21dc0",
+    "hash": "724077c98ceffd5ce62abbbab137811c81d4ca5b7c814c531af700c941cd8f754ead4b795d9c58c514ff4ae689aaa7fe2c5deeff1ff7df9ad936df71f02e4c52",
+    "token": "4f040d0c87bea1c6fe5c8ca100fed30c85aad0b0a79a484f",
+    "face": null,
+    "createdAt": "2026-09-30T21:30:27.471Z"
+  },
+  {
+    "id": "muomdcibpd85mq",
+    "login": "uikzcefc",
+    "name": "UI Test Odami",
+    "role": "operator",
+    "salt": "e6c54924bb8caf88f9212fa627743e34",
+    "hash": "53bca306dc30068725bbe6ddb30f7667ca8f40a8c69996fde6abfdfd37f5edfcec07cb69cfe832c0ac9af201d72af587eeeffe71ef50be804d39d0d78b69f67e",
+    "token": "5a93a593d8ab2d02c77d96937df7c7d8a85ca311ed424341",
+    "face": null,
+    "createdAt": "2026-09-30T21:30:42.707Z"
   }
 ]

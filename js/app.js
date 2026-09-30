@@ -39,14 +39,15 @@
   /* ============================== INIT ============================== */
   let booted = false;
 
-  document.addEventListener('DOMContentLoaded', async () => {
-    const ok = await window.Auth.restore();
-    if (ok) {
-      window.Auth.hideScreen();
-      await boot();
-    } else {
-      window.Auth.showScreen();
-    }
+  document.addEventListener('DOMContentLoaded', () => {
+    window.Auth.setAfterAuth(() => boot());      // kirish — reloadsiz, darhol ilova
+    window.Auth.showScreen();                    // login oynasi darhol ko'rinadi
+    window.Auth.restore(10000).then((ok) => {
+      if (ok) {
+        window.Auth.hideScreen();
+        boot();
+      }
+    });
   });
 
   async function boot() {

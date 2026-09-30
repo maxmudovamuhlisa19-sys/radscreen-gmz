@@ -20,5 +20,16 @@
     "lastRate": 8.4,
     "riskLabel": "Past xavf",
     "riskColor": "#eab308"
+  },
+  {
+    "id": "muomd41z3uwpn8",
+    "createdAt": "2026-09-30T21:30:31.751Z",
+    "name": "Test Bemor",
+    "dept": "Eritma sexsi",
+    "year": 1987,
+    "phone": "+998901112233",
+    "lastRate": 8.4,
+    "riskLabel": "Past xavf",
+    "riskColor": "#eab308"
   }
 ]

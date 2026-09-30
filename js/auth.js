@@ -19,12 +19,29 @@ window.Auth = (() => {
   const on = (cb) => listeners.push(cb);
   const emit = () => listeners.forEach((cb) => { try { cb(user); } catch { /* */ } });
 
+  // Kirgandan/royxatdan otgandan keyin chaqiriladigan hook (qayta yuklashsiz kirish)
+  let afterAuth = null;
+  const setAfterAuth = (fn) => { afterAuth = fn; };
+
   async function api(path, body) {
-    const res = await fetch(path, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body || {})
-    });
+    const ac = new AbortController();
+    const tm = setTimeout(() => ac.abort(), 15000);
+    let res;
+    try {
+      res = await fetch(path, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body || {}),
+        signal: ac.signal
+      });
+    } catch (err) {
+      if (err.name === 'AbortError') {
+        throw new Error('Server juda sekin javap bermoqda — internetni tekshirib, qayta urinib ko\'ring');
+      }
+      throw new Error('Serverga ulanib bo\'lmadi — tarmoqni tekshiring');
+    } finally {
+      clearTimeout(tm);
+    }
     const j = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(j.error || ('Server xatosi: ' + res.status));
     return j;
@@ -59,21 +76,31 @@ window.Auth = (() => {
     emit();
   }
 
-  /** Sahifa ochilganda sessiyani tiklash */
-  async function restore() {
+  /** Sahifa ochilganda sessiyani tiklash (sekin serverda ham qotirmaydi) */
+  async function restore(timeout = 10000) {
     const t = getToken();
     if (!t) return false;
+    const ac = new AbortController();
+    const tm = setTimeout(() => ac.abort(), timeout);
     try {
-      const res = await fetch('/api/auth/me', { headers: { Authorization: 'Bearer ' + t } });
-      if (!res.ok) throw new Error('401');
+      const res = await fetch('/api/auth/me', {
+        headers: { Authorization: 'Bearer ' + t },
+        signal: ac.signal
+      });
+      if (!res.ok) throw new Error('401');       // sessiya haqiqatan tugagan
       user = await res.json();
       emit();
       return true;
-    } catch {
-      setToken('');
-      user = null;
-      emit();
-      return false;
+    } catch (err) {
+      if (err.message === '401') {          // sessiya bekor qilingan
+        setToken('');
+        user = null;
+        emit();
+        return false;
+      }
+      return false;                          // timeout/tarmoq xatosi — token saqlanadi
+    } finally {
+      clearTimeout(tm);
     }
   }
 
@@ -270,9 +297,14 @@ window.Auth = (() => {
       }
     });
 
+    const subBtns = document.querySelectorAll(
+      '#authLoginForm button[type="submit"], #authRegisterForm button[type="submit"]');
+    subBtns.forEach((b) => { if (!b.dataset.label) b.dataset.label = b.textContent; });
     const loading = (on_) => {
-      document.querySelectorAll('#authLoginForm button, #authRegisterForm button')
-        .forEach((b) => { b.disabled = !!on_; });
+      subBtns.forEach((b) => {
+        b.disabled = !!on_;
+        b.textContent = on_ ? 'Kutilmoqda…' : b.dataset.label;
+      });
     };
 
     $('#authLoginForm').addEventListener('submit', async (e) => {
@@ -283,7 +315,8 @@ window.Auth = (() => {
       try {
         await login({ login: f.get('login'), password: f.get('password') });
         toast('Xush kelibsiz!', 'ok');
-        location.reload();
+        hideScreen();
+        if (afterAuth) afterAuth(); else location.reload();
       } catch (err) {
         showError(err.message);
       } finally {
@@ -318,7 +351,8 @@ window.Auth = (() => {
         toast(face
           ? 'Ro\'yxatdan o\'tdingiz — yuz ham saqlandi!'
           : 'Ro\'yxatdan o\'tdingiz — tizimga kirdingiz', 'ok');
-        location.reload();
+        hideScreen();
+        if (afterAuth) afterAuth(); else location.reload();
       } catch (err) {
         showError(err.message);
       } finally {
@@ -340,7 +374,7 @@ window.Auth = (() => {
   });
 
   return {
-    register, login, logout, restore, onUnauthorized, on,
+    register, login, logout, restore, onUnauthorized, on, setAfterAuth,
     getToken, setToken, showScreen, hideScreen, renderBadge,
     get user() { return user; }
   };
