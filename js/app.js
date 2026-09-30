@@ -79,6 +79,7 @@
         if (btn.dataset.tab === 'monitor') renderChart();
         if (btn.dataset.tab === 'queue') renderQueue();
         if (btn.dataset.tab === 'patients') renderPatients();
+        if (btn.dataset.tab === 'admin') loadAdminUsers();
       });
     });
     $('#btnGoVision').addEventListener('click', () => UI.$$('.tab').find((b) => b.dataset.tab === 'vision').click());
@@ -254,6 +255,31 @@
     $('#btnIdentClear').addEventListener('click', () => {
       clearIdentity();
       UI.toast('Identifikatsiya tozalandi', 'ok');
+    });
+
+    // Admin panel: foydalanuvchini o'chirish
+    $('#btnAdminRefresh').addEventListener('click', () => loadAdminUsers());
+    $('#adminRows').addEventListener('click', async (e) => {
+      const btn = e.target.closest('[data-del-user]');
+      if (!btn) return;
+      const id = btn.dataset.delUser;
+      const name = btn.dataset.name || '';
+      if (!UI.confirmBox(`"${name}" foydalanuvchisi o'chirilsinmi? U tizimdan chiqadi va yuz namunalari ham o'chiriladi.`)) return;
+      btn.disabled = true;
+      try {
+        const res = await fetch('/api/auth/users/' + encodeURIComponent(id), {
+          method: 'DELETE',
+          headers: { Authorization: 'Bearer ' + window.Auth.getToken() }
+        });
+        if (res.status === 401) { window.Auth.onUnauthorized(); return; }
+        const j = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(j.error || ('HTTP ' + res.status));
+        UI.toast(`O'chirildi: ${name}`, 'ok');
+        await loadAdminUsers();
+      } catch (err) {
+        UI.toast("O'chirib bo'lmadi: " + err.message, 'error');
+        btn.disabled = false;
+      }
     });
   }
 
@@ -617,6 +643,39 @@
     } catch (err) {
       console.warn('loadUserFaces:', err.message);
     }
+  }
+
+  /* ============================ ADMIN PANEL ============================= */
+  async function loadAdminUsers() {
+    try {
+      const res = await fetch('/api/auth/users', {
+        headers: { Authorization: 'Bearer ' + window.Auth.getToken() }
+      });
+      if (res.status === 401) { window.Auth.onUnauthorized(); return; }
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const rows = await res.json();
+      renderAdminUsers(rows);
+    } catch (err) {
+      UI.toast("Foydalanuvchilarni yuklab bo'lmadi: " + err.message, 'error');
+    }
+  }
+
+  function renderAdminUsers(rows) {
+    const meId = (window.Auth.user || {}).id;
+    const cnt = $('#adminCount');
+    if (cnt) cnt.textContent = `${rows.length} ta foydalanuvchi`;
+    UI.renderRows($('#adminRows'), rows.map((r, i) => ({ ...r, i })), [
+      { render: (r) => r.i + 1 },
+      { render: (r) => `<b>${esc(r.name)}</b>${r.id === meId ? ' ' + UI.badge('siz', '#22d3ee') : ''}` },
+      { render: (r) => esc(r.login) },
+      { render: (r) => UI.badge(r.role === 'doctor' ? 'shifokor' : 'ishchi', r.role === 'doctor' ? '#a78bfa' : '#22d3ee') },
+      { render: (r) => r.hasFace ? UI.badge(`✓ ${r.faceCount} namuna`, '#22c55e') : UI.badge("yo'q", '#64748b') },
+      { render: (r) => r.createdAt ? UI.dateStr(r.createdAt) : '—' },
+      { render: (r) => r.lastLogin ? UI.dateStr(r.lastLogin) : '—' },
+      { render: (r) => r.id === meId
+        ? '<span class="muted">—</span>'
+        : `<button class="btn btn-sm btn-warn" data-del-user="${esc(r.id)}" data-name="${esc(r.name)}">O'chirish</button>` }
+    ], "Foydalanuvchi yo'q");
   }
 
   /* ============================ TASHRIFLAR (LOG) ========================== */

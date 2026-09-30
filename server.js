@@ -136,11 +136,37 @@ function authUser(req) {
   return readJson(DB.users).find((u) => u.token === token) || null;
 }
 
-async function handleAuth(req, res, action, method) {
+async function handleAuth(req, res, action, method, subId) {
   if (action === 'me') {
     if (method !== 'GET') return send(res, 405, { error: 'Metod ruxsat etilmagan' });
     const user = authUser(req);
     return user ? send(res, 200, publicUser(user)) : send(res, 401, { error: 'Sessiya muddati tugagan' });
+  }
+
+  // Admin: foydalanuvchilar ro'yxati va o'chirish
+  if (action === 'users') {
+    const me = authUser(req);
+    if (!me) return send(res, 401, { error: 'Kirish talab qilinadi (token)' });
+    const rows = readJson(DB.users);
+    if (method === 'GET') {
+      return send(res, 200, rows
+        .slice()
+        .sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')))
+        .map((u) => ({
+          id: u.id, login: u.login, name: u.name, role: u.role,
+          hasFace: !!(u.face && u.face.templates && u.face.templates.length),
+          faceCount: (u.face && u.face.templates && u.face.templates.length) || 0,
+          createdAt: u.createdAt || null, lastLogin: u.lastLogin || null
+        })));
+    }
+    if (method === 'DELETE' && subId) {
+      if (subId === me.id) return send(res, 400, { error: "O'z hisobingizni o'chira olmaysiz" });
+      const next = rows.filter((u) => u.id !== subId);
+      if (next.length === rows.length) return send(res, 404, { error: 'Foydalanuvchi topilmadi' });
+      writeJson(DB.users, next);
+      return send(res, 200, { ok: true, id: subId });
+    }
+    return send(res, 405, { error: 'Metod ruxsat etilmagan' });
   }
 
   // Ro'yxatdagi xodimlar yuzlari (kamera shaxsni tanishi uchun)
@@ -223,7 +249,7 @@ async function handleApi(req, res, url) {
     return send(res, 200, { ok: true, service: 'radscreen', time: new Date().toISOString() });
   }
 
-  if (kind === 'auth') return handleAuth(req, res, itemId || '', method);
+  if (kind === 'auth') return handleAuth(req, res, itemId || '', method, parts[3] || '');
 
   // Barcha ma'lumotlar API si kirish talab qiladi (token)
   const user = authUser(req);

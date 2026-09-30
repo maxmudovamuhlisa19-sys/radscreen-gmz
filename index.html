@@ -80,6 +80,7 @@
     <button class="tab" data-tab="vision">📷 Camera skriningi</button>
     <button class="tab" data-tab="patients">🧑‍🤝‍🧑 Bemorlar</button>
     <button class="tab" data-tab="queue">🏥 Shifokor navbati <span class="pill" id="queueCount">0</span></button>
+  <button class="tab" data-tab="admin">🛠 Admin</button>
     <button class="tab" data-tab="method">📐 Metodika</button>
   </nav>
 
@@ -359,6 +360,29 @@
       </div>
     </div>
     <div class="queue" id="queueList"></div>
+  </div>
+</section>
+
+<!-- ============================== ADMIN PANEL ============================== -->
+<section class="page" id="page-admin">
+  <div class="card">
+    <div class="card-head">
+      <h2>🛠 Admin panel — foydalanuvchilar</h2>
+      <div class="row gap">
+        <span class="muted" id="adminCount">—</span>
+        <button class="btn btn-ghost" id="btnAdminRefresh">⟳ Yangilash</button>
+      </div>
+    </div>
+    <table class="table">
+      <thead>
+        <tr>
+          <th>#</th><th>F.I.Sh.</th><th>Login</th><th>Rol</th>
+          <th>Face ID</th><th>Ro'yxatdan o'tgan</th><th>Oxirgi kirish</th><th></th>
+        </tr>
+      </thead>
+      <tbody id="adminRows"></tbody>
+    </table>
+    <p class="hint">Ro'yxatdan o'tgan barcha foydalanuvchilar. O'chirish — faqat boshqa hisoblar uchun; o'z hisobingizni o'chira olmaysiz.</p>
   </div>
 </section>
 

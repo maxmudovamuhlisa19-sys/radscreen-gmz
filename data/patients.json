@@ -1,1 +1,13 @@
-[]
+[
+  {
+    "id": "muolkbtv3ghb7q",
+    "createdAt": "2026-09-30T21:08:08.803Z",
+    "name": "Test Bemor",
+    "dept": "Eritma sexsi",
+    "year": 1987,
+    "phone": "+998901112233",
+    "lastRate": 8.4,
+    "riskLabel": "Past xavf",
+    "riskColor": "#eab308"
+  }
+]
