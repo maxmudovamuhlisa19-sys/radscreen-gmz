@@ -111,9 +111,17 @@ function verifyPassword(password, salt, hash) {
 
 const publicUser = (u) => ({
   id: u.id, login: u.login, name: u.name, role: u.role,
+  nationality: u.nationality || '',
   hasFace: !!(u.face && Array.isArray(u.face.templates) && u.face.templates.length),
   createdAt: u.createdAt
 });
+
+/** Millat: xavfsiz, qisqa, faqat ruxsat etilgan belgilar */
+function sanitizeNation(v) {
+  const s = String(v || '').trim();
+  if (!s) return '';
+  return s.replace(/[^\p{L}\p{M}\s'-]/gu, '').slice(0, 40);
+}
 
 function sanitizeFace(f) {
   if (!f || typeof f !== 'object' || !Array.isArray(f.templates)) return null;
@@ -155,6 +163,7 @@ async function handleAuth(req, res, action, method, subId) {
         .sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')))
         .map((u) => ({
           id: u.id, login: u.login, name: u.name, role: u.role,
+          nationality: u.nationality || '',
           hasFace: !!(u.face && u.face.templates && u.face.templates.length),
           faceCount: (u.face && u.face.templates && u.face.templates.length) || 0,
           createdAt: u.createdAt || null, lastLogin: u.lastLogin || null
@@ -178,7 +187,7 @@ async function handleAuth(req, res, action, method, subId) {
     const rows = readJson(DB.users);
     return send(res, 200, rows
       .filter((u) => u.face && Array.isArray(u.face.templates) && u.face.templates.length)
-      .map((u) => ({ id: u.id, name: u.name, role: u.role, face: u.face })));
+      .map((u) => ({ id: u.id, name: u.name, role: u.role, nationality: u.nationality || '', face: u.face })));
   }
 
   if (method !== 'POST') return send(res, 405, { error: 'Metod ruxsat etilmagan' });
@@ -201,6 +210,7 @@ async function handleAuth(req, res, action, method, subId) {
     const { salt, hash } = hashPassword(password);
     const user = {
       id: uid(), login, name, role,
+      nationality: sanitizeNation(body.nationality),
       salt, hash,
       token: crypto.randomBytes(24).toString('hex'),
       face: sanitizeFace(body.face),

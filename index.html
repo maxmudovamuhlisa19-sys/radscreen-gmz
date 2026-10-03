@@ -1,4 +1,4 @@
-`<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="uz">
 <head>
   <meta charset="UTF-8" />
@@ -15,50 +15,61 @@
   <div class="auth-card">
     <div class="auth-logo">☢</div>
     <h2>RadSkrin</h2>
-    <p class="muted">NMKG · radiatsion nazorat tizimi</p>
+    <p class="muted" data-i18n="auth.login.desc">NMKG · radiatsion nazorat tizimi</p>
 
     <div class="auth-tabs">
-      <button type="button" class="auth-tab active" data-auth="login">🔑 Kirish</button>
-      <button type="button" class="auth-tab" data-auth="register">📝 Ro'yxatdan o'tish</button>
+      <button type="button" class="auth-tab active" data-auth="login" data-i18n="auth.login">🔑 Kirish</button>
+      <button type="button" class="auth-tab" data-auth="register" data-i18n="auth.register">📝 Ro'yxatdan o'tish</button>
     </div>
 
     <form id="authLoginForm" class="auth-form">
-      <label>Login</label>
-      <input name="login" placeholder="masalan: a.karimov" autocomplete="username" required autofocus />
-      <label>Parol</label>
+      <label data-i18n="auth.login">Login</label>
+      <input name="login" data-i18n-ph="auth.login.ph" placeholder="masalan: a.karimov" autocomplete="username" required autofocus />
+      <label data-i18n="auth.password">Parol</label>
       <input name="password" type="password" placeholder="••••••" autocomplete="current-password" required />
-      <button type="submit" class="btn btn-primary btn-block">Tizimga kirish</button>
+      <button type="submit" class="btn btn-primary btn-block" data-i18n="auth.login.submit">Tizimga kirish</button>
     </form>
 
     <form id="authRegisterForm" class="auth-form" hidden>
-      <label>F.I.Sh. (ism familya)</label>
+      <label data-i18n="auth.fio">F.I.Sh. (ism familya)</label>
       <input name="name" placeholder="Karimov Alisher" autocomplete="name" required />
-      <label>Login</label>
-      <input name="login" placeholder="masalan: a.karimov" autocomplete="username" required />
-      <label>Parol</label>
-      <input name="password" type="password" placeholder="kamida 6 ta belgi" autocomplete="new-password" required />
-      <label>Parolni takrorlang</label>
+      <label data-i18n="auth.login">Login</label>
+      <input name="login" data-i18n-ph="auth.login.ph" placeholder="masalan: a.karimov" autocomplete="username" required />
+      <label data-i18n="auth.password">Parol</label>
+      <input name="password" type="password" data-i18n-ph="auth.password.ph" placeholder="kamida 6 ta belgi" autocomplete="new-password" required />
+      <label data-i18n="auth.password2">Parolni takrorlang</label>
       <input name="password2" type="password" placeholder="••••••" autocomplete="new-password" required />
-      <label>Rol</label>
-      <select name="role">
-        <option value="operator">Ishchi</option>
-        <option value="doctor">Shifokor</option>
-      </select>
+
+      <div class="reg-row">
+        <div class="reg-cell">
+          <label data-i18n="auth.role">Rol</label>
+          <select name="role">
+            <option value="operator" data-i18n="auth.role.operator">Ishchi</option>
+            <option value="doctor" data-i18n="auth.role.doctor">Shifokor</option>
+          </select>
+        </div>
+        <div class="reg-cell">
+          <label data-i18n="auth.nation">Millat</label>
+          <select name="nationality" required>
+            <option value="" data-i18n="auth.nation.ph">Millatni tanlang</option>
+          </select>
+        </div>
+      </div>
 
       <!-- ===== Yuzni ro'yxatga olish (Face ID) — eng pastda ===== -->
       <div class="reg-face" id="regFace">
-        <label>Yuz orqali identifikatsiya (Face ID) — ixtiyoriy</label>
+        <label data-i18n="auth.face">Yuz orqali identifikatsiya (Face ID) — ixtiyoriy</label>
         <div class="reg-face-box" id="regFaceBox">
           <video id="regVideo" autoplay playsinline muted hidden></video>
           <div class="reg-face-off" id="regFaceOff">📷</div>
           <div class="reg-face-ok" id="regFaceOk" hidden>✓</div>
         </div>
         <div class="dots" id="regFaceDots"></div>
-        <p class="reg-face-status" id="regFaceStatus">Kamera yoqilmagan — yuzni ro'yxatga olish uchun bosing</p>
-        <button type="button" class="btn btn-ghost btn-block" id="btnRegFace">📷 Yuzni qo'shish (5 ta namuna)</button>
+        <p class="reg-face-status" id="regFaceStatus" data-i18n="auth.face.wait">Kamera yoqilmagan — yuzni ro'yxatga olish uchun bosing</p>
+        <button type="button" class="btn btn-ghost btn-block" id="btnRegFace" data-i18n="auth.face.add">📷 Yuzni qo'shish (5 ta namuna)</button>
       </div>
 
-      <button type="submit" class="btn btn-primary btn-block">Ro'yxatdan o'tish</button>
+      <button type="submit" class="btn btn-primary btn-block" data-i18n="auth.submit">Ro'yxatdan o'tish</button>
     </form>
 
     <p class="auth-err" id="authErr" hidden></p>
@@ -76,20 +87,20 @@
   </div>
 
   <nav class="tabs" id="tabs">
-    <button class="tab active" data-tab="monitor">📊 Monitoring</button>
-    <button class="tab" data-tab="vision">📷 Camera skriningi</button>
-    <button class="tab" data-tab="patients">🧑‍🤝‍🧑 Bemorlar</button>
-    <button class="tab" data-tab="queue">🏥 Shifokor navbati <span class="pill" id="queueCount">0</span></button>
-  <button class="tab" data-tab="admin" style="display:none">🛠 Admin</button>
-    <button class="tab" data-tab="method">📐 Metodika</button>
+    <button class="tab active" data-tab="monitor" data-i18n="tab.monitor">📊 Monitoring</button>
+    <button class="tab" data-tab="vision" data-i18n="tab.vision">📷 Camera skriningi</button>
+    <button class="tab" data-tab="patients" data-i18n="tab.patients">🧑‍🤝‍🧑 Bemorlar</button>
+    <button class="tab" data-tab="queue"><span data-i18n="tab.queue">🏥 Shifokor navbati</span> <span class="pill" id="queueCount">0</span></button>
+    <button class="tab" data-tab="admin" style="display:none" data-i18n="tab.admin">🛠 Admin</button>
+    <button class="tab" data-tab="method" data-i18n="tab.method">📐 Metodika</button>
   </nav>
 
   <div class="topbar-right">
-    <div class="conn" id="apiStatus" title="Server holati"><span class="dot"></span> tekshirilmoqda...</div>
+    <div class="conn" id="apiStatus" title="Server holati"><span class="dot"></span> <span data-i18n="top.checking">tekshirilmoqda...</span></div>
     <div class="user-badge" id="userBadge" hidden>
       <span class="ub-avatar">👤</span>
       <div class="ub-text"><b id="ubName">—</b><i id="ubRole">—</i></div>
-      <button class="btn btn-ghost btn-sm" id="btnLogout" title="Tizimdan chiqish">Chiqish</button>
+      <button class="btn btn-ghost btn-sm" id="btnLogout" title="Tizimdan chiqish" data-i18n="top.logout">Chiqish</button>
     </div>
     <div class="clock" id="clock">--:--:--</div>
   </div>
@@ -232,10 +243,15 @@
         <span class="live" id="camState" hidden>● jonli</span>
       </div>
 
-      <div class="cam-frame">
+      <div class="cam-frame" id="camFrame">
         <video id="camVideo" playsinline muted></video>
         <canvas id="camOverlay"></canvas>
         <div class="id-banner" id="idBanner" hidden></div>
+        <div class="ai-hud" id="aiHud" hidden>
+          <span class="hud-name" id="hudName">—</span>
+          <span class="hud-sub" id="hudSub">NEURAL FACE MATCH</span>
+          <span class="hud-pct" id="hudPct">—</span>
+        </div>
         <div class="cam-placeholder" id="camPlaceholder">
           <div class="cam-icon">📷</div>
           <p>Kamera o'chirilgan</p>
@@ -328,6 +344,36 @@
       </div>
     </div>
   </div>
+
+  <!-- ==================== AI KLINIK XULOSA (suniy intellekt) ==================== -->
+  <div class="card" id="aiCard">
+    <div class="card-head">
+      <h2 data-i18n="ai.title">🤖 AI klinik xulosa — kasalliklar (bor / yo'q)</h2>
+      <div class="row gap">
+        <button class="btn btn-primary btn-sm" id="btnAiRun" data-i18n="btn.ai.run">🔎 Qayta tahlil qilish</button>
+      </div>
+    </div>
+
+    <div class="ai-person" id="aiPerson" hidden>
+      <div class="thumb lg" id="aiThumb">👤</div>
+      <div class="ai-person-info">
+        <b id="aiName">—</b>
+        <span class="muted" id="aiMeta">—</span>
+        <span class="ai-headline" id="aiHeadline">—</span>
+      </div>
+    </div>
+
+    <div class="ai-empty" id="aiEmpty" data-i18n="ai.empty">
+      Shaxs tanilmadi — Face ID bilan yuzni tanlang yoki bemorni tanlab, "Qayta tahlil qilish" tugmasini bosing.
+    </div>
+
+    <div class="ai-groups" id="aiGroups" hidden></div>
+
+    <div class="ai-disclaimer" data-i18n="ai.disclaimer">
+      ⚕ AI xulosa oflayn qoidalar dvijoki (ICRP 103, WHO, BEIR VII, ICD-10) asosida tuziladi.
+      Bu tashxis emas — yakuniy xulosa shifokor tomonidan beriladi.
+    </div>
+  </div>
 </section>
 
 <!-- ============================== BEMORLAR ============================== -->
@@ -342,7 +388,7 @@
     </div>
     <table class="table">
       <thead>
-        <tr><th>Bemor</th><th>Bo'lim / hudud</th><th>Tug'ilgan yil</th><th>Telefon</th><th>Tashriflar</th><th>Jami doza</th><th>Oxirgi risk</th><th>Face ID</th><th></th></tr>
+        <tr><th data-i18n="th.patient">Bemor</th><th data-i18n="th.dept">Bo'lim / hudud</th><th data-i18n="th.year">Tug'ilgan yil</th><th data-i18n="th.phone">Telefon</th><th data-i18n="th.visits">Tashriflar</th><th data-i18n="th.dose">Jami doza</th><th data-i18n="th.risk">Oxirgi risk</th><th>Face ID</th><th></th></tr>
       </thead>
       <tbody id="patientRows"></tbody>
     </table>
@@ -376,8 +422,9 @@
     <table class="table">
       <thead>
         <tr>
-          <th>#</th><th>F.I.Sh.</th><th>Login</th><th>Rol</th>
-          <th>Face ID</th><th>Ro'yxatdan o'tgan</th><th>Oxirgi kirish</th><th></th>
+          <th>#</th><th data-i18n="th.patient">F.I.Sh.</th><th data-i18n="th.login">Login</th>
+          <th data-i18n="th.nation">Millat</th><th data-i18n="th.role">Rol</th>
+          <th>Face ID</th><th data-i18n="th.created">Ro'yxatdan o'tgan</th><th data-i18n="th.lastlogin">Oxirgi kirish</th><th></th>
         </tr>
       </thead>
       <tbody id="adminRows"></tbody>
@@ -442,7 +489,17 @@
     <form id="patientForm" class="form">
       <label>F.I.Sh. <input required name="name" placeholder="Karimov Alisher Ergashevich" /></label>
       <label>Bo'lim / hudud <input required name="dept" placeholder="Eritma sexsi" /></label>
-      <label>Tug'ilgan yil <input required name="year" type="number" min="1920" max="2020" placeholder="1985" /></label>
+      <div class="reg-row">
+        <div class="reg-cell">
+          <label>Tug'ilgan yil <input required name="year" type="number" min="1920" max="2020" placeholder="1985" /></label>
+        </div>
+        <div class="reg-cell">
+          <label>Millat</label>
+          <select name="nationality">
+            <option value="" data-i18n="auth.nation.ph">Millatni tanlang</option>
+          </select>
+        </div>
+      </div>
       <label>Telefon <input name="phone" placeholder="+998 90 123 45 67" /></label>
       <div class="modal-actions">
         <button type="button" class="btn btn-ghost" data-close>Bekor qilish</button>
@@ -470,8 +527,10 @@
 
 <script defer src="vendor/face-api.js"></script>
 <script defer src="js/config.js"></script>
+<script defer src="js/i18n.js"></script>
 <script defer src="js/radiation-model.js"></script>
 <script defer src="js/faceid.js"></script>
+  <script defer src="js/ai-diagnosis.js"></script>
 <script defer src="js/vision.js"></script>
 <script defer src="js/store.js"></script>
 <script defer src="js/ui.js"></script>

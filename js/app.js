@@ -53,12 +53,14 @@
   async function boot() {
     if (booted) return;
     booted = true;
+    I18n.apply();                            // tanlangan tilni (uz/ru) qo'llash
     buildTabs();
     buildSymptoms();
     buildZones();
     buildLimitsTables();
     bindControls();
     buildFaceIdPanel();
+    bindAiPanel();
     startClock();
     initFaceId();
     loadUserFaces();
@@ -68,7 +70,22 @@
     syncRate(C.BACKGROUND.typical);
     recalc();
     window.addEventListener('resize', () => renderChart());
+
+    // Til o'zgarganda — statik matnlar I18n.apply() da, dinamiklar shu yerda
+    I18n.onLang(() => refreshLang());
     console.info('%cRadSkrin ready', 'color:#22d3ee');
+  }
+
+  /** Til almashtirilganda ko'rinishni yangilash */
+  async function refreshLang() {
+    checkApi();
+    updateStatus();
+    renderPatients();
+    renderQueue();
+    const active = UI.$$('.tab').find((b) => b.classList.contains('active'));
+    if (active && active.dataset.tab === 'admin') loadAdminUsers();
+    if (state.aiDiag) renderAiPanel(state.aiDiag);
+    buildFaceIdPanel();
   }
 
   /* ============================== TABS =============================== */
@@ -105,12 +122,14 @@
       const j = await r.json();
       const el = $('#apiStatus');
       el.classList.add('ok');
-      el.innerHTML = '<span class="dot"></span> server onlayn';
+      el.classList.remove('bad');
+      el.innerHTML = `<span class="dot"></span> ${I18n.t('top.server.on')}`;
       void j;
     } catch {
       const el = $('#apiStatus');
       el.classList.add('bad');
-      el.innerHTML = '<span class="dot"></span> lokal rejim (localStorage)';
+      el.classList.remove('ok');
+      el.innerHTML = `<span class="dot"></span> ${I18n.t('top.server.off')}`;
     }
   }
 
@@ -566,6 +585,8 @@
     }
     updateStatus();
     UI.toast(`Tanildi: ${person.name} (${isUser ? person.role : person.year})`, 'ok');
+    // AI: ism + kasalliklar xulosasi (ekran + ovoz)
+    runAiDiagnosis({ person, auto: true });
   }
 
   function clearIdentity() {
@@ -574,18 +595,41 @@
     state.streak = { id: null, n: 0 };
     setBanner('none');
     updateStatus();
+    resetAiPanel();
   }
 
   function setBanner(kind, html) {
     const el = $('#idBanner');
     if (!el) return;
-    if (kind === 'none') { el.hidden = true; return; }
-    el.hidden = false;
-    el.className = `id-banner show b-${kind}`;
-    if (el.dataset.k !== kind + (html || '')) {
-      el.innerHTML = html || '';
-      el.dataset.k = kind + (html || '');
+    if (kind === 'none') { el.hidden = true; }
+    else {
+      el.hidden = false;
+      el.className = `id-banner show b-${kind}`;
+      if (el.dataset.k !== kind + (html || '')) {
+        el.innerHTML = html || '';
+        el.dataset.k = kind + (html || '');
+      }
     }
+    updateHud(kind);
+  }
+
+  /* AI HUD: kadr ichida "bijr-bijr" chiqadigan shaxs kartochkasi */
+  function updateHud(kind) {
+    const hud = $('#aiHud');
+    const frame = $('#camFrame');
+    if (!hud) return;
+    const id = state.identified;
+    const show = !!id && (kind === 'ok' || kind === 'candidate');
+    hud.hidden = !show;
+    if (frame) frame.classList.toggle('ai-on', show);
+
+    if (!show) return;
+    const sub = id.kind === 'user'
+      ? `AI · xodim · ${id.role || ''}`.trim()
+      : `AI · bemor · ${id.dept || ''}`.trim();
+    $('#hudName').textContent = id.name || '—';
+    $('#hudSub').textContent = sub;
+    $('#hudPct').textContent = `MATCH ${state.identScore || 0}% · ICD SYNC OK`;
   }
 
   function updateStatus() {
@@ -596,16 +640,19 @@
       const p = state.identified;
       box.className = 'faceid-status fs-ok';
       txt.innerHTML = p.kind === 'user'
-        ? `<b>${esc(p.name)}</b> · ${esc(p.role)} · o'xshashlik ${state.identScore}%`
-        : `<b>${esc(p.name)}</b> · ${p.year} · ${esc(p.dept)} · tashriflar: ${(p.visits || []).length} · o'xshashlik ${state.identScore}%`;
+        ? `<b>${esc(p.name)}</b> · ${esc(p.role)} · ${I18n.t('faceid.match')} ${state.identScore}%`
+        : `<b>${esc(p.name)}</b> · ${p.year} · ${esc(p.dept)} · ${I18n.lang === 'ru' ? 'визиты' : 'tashriflar'}: ${(p.visits || []).length} · ${I18n.t('faceid.match')} ${state.identScore}%`;
+      updateHud('ok');
     } else if (!engine.running) {
       box.className = 'faceid-status';
-      txt.textContent = 'Kamera yoqilmagan';
+      txt.textContent = I18n.t('faceid.off');
+      updateHud('none');
     } else {
       box.className = 'faceid-status fs-wait';
       txt.textContent = identityPool().length
-        ? 'Yuz tanilmoqda...'
-        : "Ro'yxatda yuz yo'q — yuzni registratsiyada qo'shing";
+        ? I18n.t('faceid.wait')
+        : I18n.t('faceid.noface');
+      updateHud('none');
     }
   }
 
@@ -635,6 +682,7 @@
         kind: 'user',
         name: u.name,
         role: u.role === 'doctor' ? 'shifokor' : 'ishchi',
+        nationality: u.nationality || '',
         year: null,
         face: u.face,
         visits: []
@@ -644,6 +692,127 @@
     } catch (err) {
       console.warn('loadUserFaces:', err.message);
     }
+  }
+
+  /* ==================== AI: KLINIK XULOSA + OVOZ ===================== */
+  const AIG = () => ({
+    bor: I18n.t('ai.bor'), shubha: I18n.t('ai.shubha'), yoq: I18n.t('ai.yoq')
+  });
+
+  function aiPerson() {
+    if (state.identified) return state.identified;
+    if (state.patientId) return state.patients.find((p) => p.id === state.patientId) || null;
+    return null;
+  }
+
+  function runAiDiagnosis(opts = {}) {
+    const person = opts.person !== undefined ? opts.person : aiPerson();
+    if (!window.AIDiag) return null;
+
+    if (!person) {
+      state.aiDiag = null;
+      renderAiPanel(null);
+      return null;
+    }
+
+    // joriy holat bo'yicha to'liq tahlil (tashrif yozilmaydi)
+    if (!state.vision && engine.running) state.vision = engine.latest;
+    const a = M.analyze({
+      rateUSvH: state.rate,
+      vision: state.vision,
+      symptoms: [...state.symptoms]
+    });
+    state.analysis = a;
+
+    const res = window.AIDiag.diagnose({ a, person, symptoms: [...state.symptoms] });
+    state.aiDiag = res;
+    renderAiPanel(res);
+
+    return res;
+  }
+
+  function renderAiPanel(res) {
+    const boxPerson = $('#aiPerson');
+    const boxEmpty = $('#aiEmpty');
+    const boxGroups = $('#aiGroups');
+    if (!boxPerson) return;
+
+    if (!res) {
+      boxPerson.hidden = true;
+      boxEmpty.hidden = false;
+      boxGroups.hidden = true;
+      boxGroups.innerHTML = '';
+      return;
+    }
+
+    boxPerson.hidden = false;
+    boxEmpty.hidden = true;
+    boxGroups.hidden = false;
+
+    const p = res.person || {};
+    const thumbEl = $('#aiThumb');
+    if (thumbEl) {
+      if (p.thumb) {
+        const img = document.createElement('img');
+        img.className = 'thumb lg';
+        img.id = 'aiThumb';
+        img.src = p.thumb;
+        img.alt = '';
+        thumbEl.replaceWith(img);
+      } else if (thumbEl.tagName !== 'DIV') {
+        const div = document.createElement('div');
+        div.className = 'thumb lg';
+        div.id = 'aiThumb';
+        div.textContent = '👤';
+        thumbEl.replaceWith(div);
+      }
+    }
+    $('#aiName').textContent = res.personName || "Noma'lum shaxs";
+    $('#aiMeta').textContent = p.kind === 'user'
+      ? `${p.role || 'xodim'} · o'xshashlik ${state.identScore}%`
+      : [p.year ? `${p.year} yil` : '', p.dept || '', state.identScore ? `o'xshashlik ${state.identScore}%` : '']
+          .filter(Boolean).join(' · ') || 'Face ID tasdiqlangan';
+    $('#aiHeadline').textContent =
+      `${res.headline} · ${res.counts.bor} bor, ${res.counts.shubha} shubha, ${res.counts.yoq} yo'q`;
+
+    const groups = ['bor', 'shubha', 'yoq'];
+    const ru = res.lang === 'ru';   // shaxs rus millatidan bo'lsa — ruscha nomlar
+    boxGroups.innerHTML = groups.map((k) => {
+      const items = res.items.filter((i) => i.status === k);
+      const st = window.AIDiag.STATUS[k];
+      return `
+      <div class="ai-g ${k}">
+          <div class="ai-g-head"><span>${st.label} — ${AIG()[k]}</span><span class="cnt">${items.length}</span></div>
+        <div class="ai-g-body">
+          ${items.length ? items.map((i) => `
+            <div class="ai-item" style="--b:${i.color}">
+              <div class="ai-item-top">
+                <span class="ai-item-name">${esc(ru ? i.nameRu : i.name)}</span>
+                <span class="ai-item-icd">${esc(i.icd)}</span>
+              </div>
+              <div class="ai-item-score">${ru ? 'уверенность' : 'ishonch'}: ${i.score}% · ${ru ? 'группа' : 'guruh'}: ${esc(i.group)}</div>
+              ${i.ev.length ? `<ul>${i.ev.map((e) => `<li>${esc(e)}</li>`).join('')}</ul>` : ''}
+              ${i.status !== 'yoq' && i.advice ? `<div class="ai-item-advice">💊 ${esc(ru ? i.adviceRu : i.advice)}</div>` : ''}
+            </div>`).join('')
+            : `<div class="ai-g-empty">— ${k === 'yoq' ? (ru ? 'Список пуст' : "Ro'yxat bo'sh") : (ru ? 'Не обнаружено' : 'Aniqlanmadi')} —</div>`}
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+
+  function resetAiPanel() {
+    state.aiDiag = null;
+    renderAiPanel(null);
+  }
+
+  function bindAiPanel() {
+    const btnRun = $('#btnAiRun');
+    if (btnRun) btnRun.addEventListener('click', () => {
+      const r = runAiDiagnosis({});
+      if (r) UI.toast(`AI tahlili yangilandi: ${r.headline}`, r.counts.bor ? 'warn' : 'ok');
+      else UI.toast("Shaxs/bemor tanlanmagan", 'warn');
+    });
   }
 
   /* ============================ ADMIN PANEL ============================= */
@@ -669,8 +838,9 @@
       { render: (r) => r.i + 1 },
       { render: (r) => `<b>${esc(r.name)}</b>${r.id === meId ? ' ' + UI.badge('siz', '#22d3ee') : ''}` },
       { render: (r) => esc(r.login) },
-      { render: (r) => UI.badge(r.role === 'doctor' ? 'shifokor' : 'ishchi', r.role === 'doctor' ? '#a78bfa' : '#22d3ee') },
-      { render: (r) => r.hasFace ? UI.badge(`✓ ${r.faceCount} namuna`, '#22c55e') : UI.badge("yo'q", '#64748b') },
+      { render: (r) => (r.nationality ? esc(I18n.nation(I18n.nationId(r.nationality))) : '—') },
+      { render: (r) => UI.badge(r.role === 'doctor' ? I18n.t('auth.role.doctor') : I18n.t('auth.role.operator'), r.role === 'doctor' ? '#a78bfa' : '#22d3ee') },
+      { render: (r) => r.hasFace ? UI.badge(`✓ ${r.faceCount} ${I18n.lang === 'ru' ? 'обр.' : 'namuna'}`, '#22c55e') : UI.badge(I18n.lang === 'ru' ? 'нет' : "yo'q", '#64748b') },
       { render: (r) => r.createdAt ? UI.dateStr(r.createdAt) : '—' },
       { render: (r) => r.lastLogin ? UI.dateStr(r.lastLogin) : '—' },
       { render: (r) => r.id === meId
@@ -869,6 +1039,9 @@
 
     renderMonitor(a);
     UI.toast(`Tahlil yakunlandi: ${a.healthLoss}% — ${a.risk.label}`, a.referralNeeded ? 'warn' : 'ok', 5000);
+
+    // AI xulosasi: kasallik bor/yo'q ro'yxatini ham yangilaymiz
+    runAiDiagnosis({});
   }
 
   function renderRefPreview(r) {
@@ -959,7 +1132,10 @@
     sel.innerHTML = '<option value="">— tanlanmagan —</option>' +
       state.patients.map((p) => `<option value="${p.id}">${esc(p.name)} — ${esc(p.dept)}</option>`).join('');
     sel.value = state.patientId;
-    sel.onchange = (e) => { state.patientId = e.target.value; };
+    sel.onchange = (e) => {
+      state.patientId = e.target.value;
+      if (state.patientId && state.aiDiag) runAiDiagnosis({});
+    };
 
     const cnt = $('#faceIdCount');
     if (cnt) buildFaceIdPanel();
@@ -994,6 +1170,7 @@
         const p = state.patients.find((x) => x.id === pick);
         if (p && p.lastRate != null) { syncRate(p.lastRate); recalc(); }
         UI.toast(`Tanlandi: ${p?.name}`, 'ok');
+        runAiDiagnosis({});
         goTab('vision');
       }
       if (hist) {
@@ -1019,6 +1196,7 @@
       dept: f.get('dept').trim(),
       year: Number(f.get('year')),
       phone: (f.get('phone') || '').trim(),
+      nationality: String(f.get('nationality') || '').trim(),
       lastRate: state.rate,
       riskLabel: state.analysis?.risk.label,
       riskColor: state.analysis?.risk.color
@@ -1100,5 +1278,5 @@
   }
 
   // Support / test uchun kichik hook (xavfsiz, faqat o'qish-mutatsiya)
-  window.RadDebug = { state, feedIdentity, confirmIdentity, clearIdentity, runAnalysis, loadPatients, loadUserFaces };
+  window.RadDebug = { state, feedIdentity, confirmIdentity, clearIdentity, runAnalysis, loadPatients, loadUserFaces, runAiDiagnosis };
 })();

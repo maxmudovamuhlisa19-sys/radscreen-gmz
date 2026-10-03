@@ -271,10 +271,38 @@ window.Auth = (() => {
     if (!user) { b.hidden = true; return; }
     b.hidden = false;
     $('#ubName').textContent = user.name;
-    $('#ubRole').textContent = user.role === 'doctor' ? 'shifokor' : 'ishchi';
+    $('#ubRole').textContent = user.role === 'doctor'
+      ? I18n.t('auth.role.doctor') : I18n.t('auth.role.operator');
   }
 
+  /* ------------------------- Millat ro'yxati (i18n) --------------------- */
+  function fillNations() {
+    if (!window.I18n) return;
+    // registratsiya formasi + bemor qo'shish formasi
+    document.querySelectorAll('select[name="nationality"]').forEach((sel) => {
+      const prev = sel.value;
+      sel.innerHTML = '';
+      const ph = document.createElement('option');
+      ph.value = '';
+      ph.textContent = I18n.t('auth.nation.ph');
+      sel.appendChild(ph);
+      I18n.NATIONS.forEach((n) => {
+        const o = document.createElement('option');
+        o.value = n.id;
+        o.textContent = n[I18n.lang] || n.uz;
+        sel.appendChild(o);
+      });
+      sel.value = prev && I18n.NATIONS.some((n) => n.id === prev) ? prev : '';
+    });
+  }
+
+  /* --------------------------- Til: uz (doimiy) ------------------------- */
+  // Til almashtirish tugmasi yo'q — UI doimiy o'zbekcha.
+  // AI ovozi esa shaxs millatiga qarab uz/ru avtomatik tanlanadi.
+
   function bindUi() {
+    if (window.I18n) I18n.apply();
+    fillNations();
     const tabs = document.querySelectorAll('.auth-tab');
     tabs.forEach((t) => t.addEventListener('click', () => {
       tabs.forEach((x) => x.classList.toggle('active', x === t));
@@ -346,6 +374,7 @@ window.Auth = (() => {
           login: String(f.get('login') || '').trim(),
           password: pass,
           role: f.get('role'),
+          nationality: String(f.get('nationality') || '').trim(),
           ...(face ? { face } : {})
         });
         toast(face

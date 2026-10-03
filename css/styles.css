@@ -496,6 +496,32 @@ input[type="range"]::-webkit-slider-thumb {
   padding: 5px; border-radius: 12px; border: 1px solid var(--line);
   margin-bottom: 18px;
 }
+
+/* --------- Til almashtirish (uz / ru) --------- */
+.lang-switch {
+  display: inline-flex; gap: 4px; padding: 4px;
+  background: rgba(2,6,23,.5); border: 1px solid var(--line);
+  border-radius: 999px; margin-bottom: 14px;
+}
+.lang-switch.top { margin: 0; padding: 3px; }
+.lang-btn {
+  border: 0; cursor: pointer; font: inherit; font-size: 12.5px; font-weight: 600;
+  padding: 6px 12px; border-radius: 999px;
+  background: transparent; color: var(--muted); transition: .15s;
+}
+.lang-switch.top .lang-btn { padding: 4px 9px; font-size: 14px; }
+.lang-btn:hover { color: var(--text); background: rgba(148,163,184,.12); }
+.lang-btn.active {
+  background: linear-gradient(145deg, var(--accent), var(--accent-2));
+  color: #062b33;
+}
+
+/* --------- Registratsiya: Rol + Millat qatorlari --------- */
+.reg-row { display: flex; gap: 10px; }
+.reg-cell { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.reg-cell label { font-size: 12px; color: var(--muted); }
+.reg-cell select { width: 100%; }
+
 .auth-tab {
   flex: 1; padding: 9px 10px; border: 0; border-radius: 9px; cursor: pointer;
   background: transparent; color: var(--muted);
@@ -590,3 +616,107 @@ body.auth-open { overflow: hidden; }
   0%   { transform: scale(.7); opacity: .9; }
   100% { transform: scale(1.7); opacity: 0; }
 }
+
+/* --------------------------- AI KLINIK XULOSA ---------------------------- */
+#aiCard { border: 1px solid rgba(168, 85, 247, .30); background: linear-gradient(160deg, rgba(168, 85, 247, .07), rgba(34, 211, 238, .04)); }
+#aiCard .card-head h2 { color: #c4b5fd; }
+#aiCard .check { margin: 0; }
+
+.ai-person { display: flex; gap: 14px; align-items: center; margin: 4px 0 14px; padding: 13px 15px; background: rgba(2, 6, 23, .45); border: 1px solid var(--line); border-radius: 14px; }
+.ai-person-info { display: grid; gap: 3px; }
+.ai-person-info b { font-size: 17px; }
+.ai-person-info .muted { font-size: 12.5px; }
+.ai-headline { font-size: 13px; font-weight: 700; color: var(--accent); }
+
+.ai-empty { text-align: center; color: var(--muted); font-size: 13.5px; padding: 26px 16px; border: 1px dashed var(--line); border-radius: 12px; }
+
+.ai-groups { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+@media (max-width: 1100px) { .ai-groups { grid-template-columns: 1fr; } }
+
+.ai-g { background: rgba(2, 6, 23, .42); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; display: flex; flex-direction: column; }
+.ai-g-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 11px 14px; font-size: 13px; font-weight: 700; letter-spacing: .3px; border-bottom: 1px solid var(--line); }
+.ai-g-head .cnt { font-family: var(--mono); font-size: 15px; }
+.ai-g.bor .ai-g-head { background: rgba(239, 68, 68, .14); color: #fca5a5; border-bottom-color: rgba(239, 68, 68, .35); }
+.ai-g.shubha .ai-g-head { background: rgba(249, 115, 22, .14); color: #fdba74; border-bottom-color: rgba(249, 115, 22, .35); }
+.ai-g.yoq .ai-g-head { background: rgba(34, 197, 94, .12); color: #86efac; border-bottom-color: rgba(34, 197, 94, .32); }
+.ai-g-body { display: grid; gap: 9px; padding: 11px; align-content: start; flex: 1; }
+
+.ai-item { background: rgba(148, 163, 184, .06); border: 1px solid var(--line); border-left: 3px solid var(--b, var(--muted)); border-radius: 10px; padding: 9px 11px; }
+.ai-item-top { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
+.ai-item-name { font-size: 13.2px; font-weight: 700; line-height: 1.35; }
+.ai-item-icd { font-family: var(--mono); font-size: 11px; color: var(--muted); white-space: nowrap; }
+.ai-item-score { font-family: var(--mono); font-size: 11.5px; color: var(--b); margin-top: 2px; }
+.ai-item ul { margin: 6px 0 0; padding-left: 16px; display: grid; gap: 3px; }
+.ai-item li { font-size: 12px; color: var(--muted); line-height: 1.45; }
+.ai-item-advice { font-size: 12px; color: var(--text); opacity: .88; margin-top: 7px; padding-top: 7px; border-top: 1px dashed var(--line); line-height: 1.45; }
+.ai-g-empty { font-size: 12.5px; color: var(--muted); text-align: center; padding: 16px 8px; }
+
+.ai-disclaimer { margin-top: 14px; font-size: 12px; color: var(--muted); line-height: 1.55; background: rgba(148, 163, 184, .07); border-left: 3px solid var(--accent); border-radius: 8px; padding: 9px 12px; }
+
+
+/* ------------------------ AI JINS TANLOSH (seg) --------------------------- */
+
+/* ------------------- AI ANIQLASH: GLITCH ("bijr-bijr") --------------------- */
+/* Yuz tanilganda banner "bijr-bijr" bo'lib, RGB-tebranish bilan ko'rinadi */
+.id-banner.b-ok { animation: dropIn .3s ease, aiGlitch 2.4s steps(2, end) infinite; }
+.id-banner.b-candidate { animation: dropIn .3s ease, aiGlitch 3.6s steps(2, end) infinite; }
+
+@keyframes aiGlitch {
+  0%, 88%, 100% {
+    text-shadow: none;
+    filter: none;
+    transform: translateX(-50%);
+  }
+  89% { text-shadow: -2px 0 #22d3ee, 2px 0 #ef4444; transform: translateX(calc(-50% - 2px)); }
+  90% { text-shadow: 2px 0 #a855f7, -2px 0 #22c55e; transform: translateX(calc(-50% + 2px)); filter: hue-rotate(35deg); }
+  91% { text-shadow: -1px 0 #ef4444, 1px 0 #38bdf8; transform: translateX(-50%); }
+  93% { text-shadow: 3px 0 #22d3ee, -3px 0 #f97316; transform: translateX(calc(-50% + 3px)) skewX(4deg); filter: contrast(1.6); }
+  94% { text-shadow: none; transform: translateX(-50%); filter: none; }
+}
+
+/* AI ramkasi: yuz atrofida jonli skaner + burchakli HUD */
+.cam-frame.ai-on::before {
+  content: ''; position: absolute; inset: 0; z-index: 3; pointer-events: none;
+  background:
+    repeating-linear-gradient(0deg, rgba(34, 211, 238, .07) 0 1px, transparent 1px 3px);
+  animation: aiFlicker 1.7s steps(3, end) infinite;
+}
+.cam-frame.ai-on::after {
+  content: 'AI · NEURAL SCAN';
+  position: absolute; top: 8px; right: 10px; z-index: 4; pointer-events: none;
+  font: 700 10.5px ui-monospace, Consolas, monospace; letter-spacing: 2.5px;
+  color: #22d3ee; text-shadow: 0 0 10px rgba(34, 211, 238, .9), -1px 0 #ef4444, 1px 0 #a855f7;
+  animation: aiTag 1.1s steps(2, end) infinite;
+}
+@keyframes aiFlicker {
+  0%, 100% { opacity: .55; }
+  50% { opacity: .95; }
+  72% { opacity: .3; }
+}
+@keyframes aiTag {
+  0%, 62%, 100% { opacity: 1; }
+  63% { opacity: .25; letter-spacing: 4px; }
+  64% { opacity: 1; letter-spacing: 2.5px; }
+  82% { opacity: .4; }
+  83% { opacity: 1; }
+}
+
+/* Tanilgan shaxs kartochkasi: AI HUD uslubi */
+.ai-hud {
+  position: absolute; left: 10px; bottom: 10px; z-index: 4; pointer-events: none;
+  display: flex; flex-direction: column; gap: 3px;
+  padding: 9px 13px; border: 1px solid rgba(34, 211, 238, .65);
+  border-left: 3px solid var(--accent);
+  background: linear-gradient(135deg, rgba(2, 6, 23, .88), rgba(34, 211, 238, .13));
+  backdrop-filter: blur(6px); border-radius: 8px;
+  font: 600 12px ui-monospace, Consolas, monospace;
+  animation: hudIn .28s ease;
+}
+.ai-hud .hud-name {
+  font-size: 15px; font-weight: 800; color: #fff;
+  text-shadow: -1px 0 #22d3ee, 1px 0 #ef4444;
+  animation: aiGlitch 2.2s steps(2, end) infinite;
+}
+.ai-hud .hud-sub { color: #67e8f9; font-size: 11px; letter-spacing: .8px; }
+.ai-hud .hud-pct { color: #4ade80; font-size: 11px; }
+@keyframes hudIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
