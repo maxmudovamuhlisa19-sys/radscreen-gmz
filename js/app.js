@@ -55,12 +55,15 @@
     booted = true;
     I18n.apply();                            // tanlangan tilni (uz/ru) qo'llash
     buildTabs();
+    applyHash();
+    window.addEventListener('hashchange', applyHash);
     buildSymptoms();
     buildZones();
     buildLimitsTables();
     bindControls();
     buildFaceIdPanel();
     bindAiPanel();
+    bindAlcohol();
     startClock();
     initFaceId();
     loadUserFaces();
@@ -107,6 +110,20 @@
     const t = UI.$$('.tab').find((b) => b.dataset.tab === name);
     if (t) t.click();
   };
+
+  /** URL hash orqali tab va elementga o'tish: #vision / #vision/aiCard */
+  function applyHash() {
+    const raw = decodeURIComponent((location.hash || '').replace(/^#/, ''));
+    if (!raw) return;
+    const [tab, sel] = raw.split('/');
+    goTab(tab);
+    if (sel) {
+      const el = document.getElementById(sel);
+      if (el) setTimeout(() => el.scrollIntoView({ block: 'start' }), 60);
+    } else {
+      window.scrollTo(0, 0);
+    }
+  }
 
   /* ============================== CLOCK ============================== */
   function startClock() {
@@ -451,6 +468,9 @@
   function onVisionFrame(f) {
     state.vision = f;
 
+    // alkogol: duranglik testi faol bo'lsa — kadrni yig'amiz
+    if (window.AlcoholTest && AlcoholTest.swayRunning) AlcoholTest.swayFeed(f);
+
     $('#cPresence').textContent = f.found ? `${f.presence}%` : 'aniqlanmadi';
     $('#cPallor').textContent = f.pallor == null ? '—' : `${f.pallor}`;
     $('#cPulse').textContent = f.pulse ? `${f.pulse} bpm` : (f.parsed ? 'puls kutilmoqda...' : '—');
@@ -728,6 +748,12 @@
     state.aiDiag = res;
     renderAiPanel(res);
 
+    // tahlil tugagach — AI ovozda qisqa xabar bersin (suhbat boshlansin)
+    if (opts.voice !== false && res && window.AIChat) {
+      const g = window.AIChat.ask('tahlil', res, res.lang);
+      setTimeout(() => aiSay(g.text, g.lang), 400);
+    }
+
     return res;
   }
 
@@ -812,6 +838,378 @@
       const r = runAiDiagnosis({});
       if (r) UI.toast(`AI tahlili yangilandi: ${r.headline}`, r.counts.bor ? 'warn' : 'ok');
       else UI.toast("Shaxs/bemor tanlanmagan", 'warn');
+    });
+
+    bindAiChat();
+  }
+
+  /* ==================== ALKOHOL ANIQLASH (5 signal) ====================== */
+
+  const alc = { reactionMs: null, jitter: null, bac: null, selfScore: null, result: null };
+
+  /** Yakuniy natijani hisoblash + chizish */
+  function alcCompute() {
+    const A = window.AlcoholTest;
+    if (!A) return null;
+
+    const self = A.selfReport({
+      counts: alcDrinks(),
+      weight: Number(($('#alcWeight') || {}).value) || 75,
+      hours: Number(($('#alcHours') || {}).value) || 1,
+      sex: (($('#alcSex') || {}).value) || 'male',
+      behaviour: (($('#alcBehaviour') || {}).value) || 'no'
+    });
+    alc.bac = self.bac;
+    alc.selfScore = self.score;
+
+    const v = state.vision || (engine && engine.latest) || null;
+    const res = A.compute({
+      reactionMs: alc.reactionMs,
+      jitter: alc.jitter,
+      redness: v ? v.redness : null,
+      pulse: v ? v.pulse : null,
+      bac: self.bac,
+      selfScore: self.score
+    });
+    alc.result = res;
+    alcRender(res, self);
+    return res;
+  }
+
+  function alcRender(res, self) {
+    const scoreEl = $('#alcScore'), arc = $('#alcArc');
+    const verdict = $('#alcVerdict'), conf = $('#alcConf'), bacEl = $('#alcBac');
+    const adv = $('#alcAdvice');
+    if (!scoreEl) return;
+
+    if (!res || !res.signals.length) {
+      scoreEl.textContent = '—';
+      verdict.textContent = 'Hech bir signal yig\'ilmadi';
+      verdict.style.background = 'rgba(148,163,184,.12)';
+      return;
+    }
+
+    scoreEl.textContent = res.score;
+    scoreEl.style.color = res.color;
+    conf.textContent = 'ishonch ' + res.confidence + '% (' + res.signals.length + '/5 signal)';
+    if (arc) {
+      arc.style.stroke = res.color;
+      arc.style.strokeDashoffset = String(157 - (157 * res.score) / 100);
+    }
+    verdict.textContent = res.verdict;
+    verdict.style.background = res.color + '26';
+    verdict.style.color = res.color;
+
+    bacEl.textContent = res.bac != null
+      ? `Qon alkogoli (Widmark): ${res.bac}%  ·  ichilgan: ${self ? self.grams : 0} g etanol`
+      : 'Qon alkogoli: savolnoma bo\'yicha hisoblanmadi';
+
+    adv.innerHTML = (res.advice || []).map((t) => '<li>' + esc(t) + '</li>').join('');
+
+    // signal qiymatlarini panelga chiqarish
+    const map = { sway: 'Sway', reaction: 'React', voice: 'Voice', physio: 'Phys', self: 'Self' };
+    res.signals.forEach((s) => {
+      const key = map[s.id];
+      if (!key) return;
+      const box = document.getElementById('alcV' + key);
+      if (box) {
+        box.textContent = s.id === 'sway' ? s.value + ' px'
+          : s.id === 'reaction' ? s.value + ' ms'
+          : s.id === 'voice' ? s.value + '% jitter'
+          : s.id === 'self' ? s.value
+          : (s.value || '—');
+      }
+      const bar = document.getElementById('alcB' + key);
+      if (bar) {
+        bar.style.width = Math.round(s.n) + '%';
+        bar.style.background = s.n < 20 ? '#22c55e' : s.n < 45 ? '#eab308' : s.n < 70 ? '#f97316' : '#ef4444';
+      }
+    });
+    // mavjud bo'lmagan signallarni xiralashtirish
+    const present = res.signals.map((s) => s.id);
+    const ids = { sway: 'Sway', reaction: 'React', voice: 'Voice', physio: 'Phys', self: 'Self' };
+    Object.keys(ids).forEach((k) => {
+      const sig = document.querySelector('.alc-sig[data-sig="' + (k === 'physio' ? 'physio' : k) + '"]');
+      if (sig) sig.classList.toggle('dim', !present.includes(k === 'physio' ? 'physio' : k));
+    });
+  }
+
+  function alcDrinks() {
+    const out = {};
+    const box = $('#alcDrinks');
+    if (!box) return out;
+    box.querySelectorAll('input[data-drink]').forEach((i) => {
+      const n = Number(i.value) || 0;
+      if (n > 0) out[i.dataset.drink] = n;
+    });
+    return out;
+  }
+
+  function buildAlcoholPanel() {
+    const box = $('#alcDrinks');
+    if (box) {
+      const A = window.AlcoholTest;
+      box.innerHTML = Object.keys(A.DRINKS).map((k) =>
+        `<label class="alc-drink"><span>${A.DRINKS[k].label}</span>` +
+        `<input type="number" data-drink="${k}" min="0" max="30" step="1" value="0" /></label>`
+      ).join('');
+      box.addEventListener('change', () => alcCompute());
+    }
+    ['#alcHours', '#alcWeight', '#alcSex', '#alcBehaviour'].forEach((sel) => {
+      const el = $(sel);
+      if (el) el.addEventListener('change', () => alcCompute());
+    });
+  }
+
+  function bindAlcohol() {
+    const A = window.AlcoholTest;
+    if (!A) return;
+    buildAlcoholPanel();
+
+    // duranglik: kamera 6 soniya yig'adi
+    const bSway = $('#btnAlcSway');
+    if (bSway) bSway.addEventListener('click', async () => {
+      if (A.swayRunning) { A.swayStop(); bSway.textContent = 'duranglik (kamera)'; return; }
+      if (!state.vision) {
+        UI.toast('Avval kamerani yoqing (Kamera)', 'warn');
+        return;
+      }
+      A.swayStart();
+      bSway.textContent = '⏳ yig\'ilmoqda…';
+      setTimeout(() => {
+        A.swayStop();
+        bSway.textContent = 'duranglik (kamera)';
+        const r = A.swayResult();
+        if (r.px == null) { UI.toast('Yuz barqaror emas — qayta urinib ko\'ring', 'warn'); return; }
+        UI.toast(`Duranglik: ${r.px.toFixed(1)} px (${r.n} kadr)`, 'ok');
+        alcCompute();
+      }, 6000);
+    });
+
+    // ovoz: ~4 soniya mikrofon
+    const bVoice = $('#btnAlcVoice');
+    if (bVoice) bVoice.addEventListener('click', async () => {
+      if (A.voiceActive) { A.voiceStop(); return; }
+      if (VoiceIn && VoiceIn.listening) { UI.toast('Avval mikrofonni to\'xtating', 'warn'); return; }
+      UI.toast('Mikrofonga gapiring (4 soniya)…', 'info');
+      const ok = await A.voiceStart((r) => {
+        alc.jitter = r.jitter;
+        UI.toast(r.jitter != null
+          ? `Ovoz jitter: ${r.jitter}% (${r.n} kad)`
+          : 'Ovoz yetarli tahlil qilinmadi — qayta urinib ko\'ring', r.jitter != null ? 'ok' : 'warn');
+        alcCompute();
+      });
+      if (!ok) UI.toast('Mikrofonga ruxsat bering', 'error');
+    });
+
+    // to'liq test: duranglik + reaktsiya + ovoz navbat bilan
+    const bRun = $('#btnAlcRun');
+    if (bRun) bRun.addEventListener('click', async () => {
+      if (alc.busy) return;
+      alc.busy = true;
+      const rt = $('#alcRt');
+      if (rt) rt.hidden = true;
+
+      // 1) duranglik
+      if (!state.vision) {
+        UI.toast('Kamera yo\'q — duranglik o\'tkazildi', 'warn');
+      } else {
+        UI.toast('1/3 Duranglik testi — kamerni qimirlatmang…', 'info');
+        A.swayStart();
+        await new Promise((r) => setTimeout(r, 6000));
+        A.swayStop();
+        const sr = A.swayResult();
+        UI.toast(sr.px != null ? `Duranglik: ${sr.px.toFixed(1)} px` : 'Duranglik: yig\'ilmadi', sr.px != null ? 'ok' : 'warn');
+      }
+
+      // 2) reaktsiya
+      if (rt) rt.hidden = false;
+      UI.toast('2/3 Reaktsiya testi — ekranni kuzating', 'info');
+      await new Promise((resolve) => {
+        A.reactionStart((med, trials) => {
+          alc.reactionMs = med;
+          UI.toast(med != null ? `Reaktsiya: ${med} ms (${trials.length} sinov)` : 'Reaktsiya o\'tkazilmadi', med != null ? 'ok' : 'warn');
+          if (rt) rt.hidden = true;
+          resolve();
+        }, 6);
+      });
+
+      // 3) ovoz
+      UI.toast('3/3 Ovoz testi — biror gap gapiring', 'info');
+      const started = await A.voiceStart((r) => {
+        alc.jitter = r.jitter;
+        UI.toast(r.jitter != null ? `Jitter: ${r.jitter}%` : 'Ovoz tahlili yetmadi', r.jitter != null ? 'ok' : 'warn');
+        alcCompute();
+        alc.busy = false;
+      });
+      if (!started) { UI.toast('Mikrofon ruxsati kerak', 'error'); alc.busy = false; }
+
+      alcCompute();
+    });
+
+    // kameradan duranglikni jonli yig'ish
+    alcCompute();
+  }
+
+  /* ====================== AI SUHBAT (ovozli muloqot) ==================== */
+
+  const chat = { lastAi: '', busy: false, history: [] };
+
+  function chatAdd(kind, text) {
+    const log = $('#aiChatLog');
+    if (!log || !text) return null;
+    const el = document.createElement('div');
+    el.className = 'msg ' + kind;
+    el.textContent = text;
+    const ts = document.createElement('span');
+    ts.className = 'ts';
+    ts.textContent = new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+    el.appendChild(ts);
+    log.appendChild(el);
+    log.scrollTop = log.scrollHeight;
+    return el;
+  }
+
+  function setMic(on) {
+    const b = $('#btnAiMic');
+    if (b) { b.classList.toggle('rec', !!on); b.textContent = on ? '⏹' : '🔺'; }
+  }
+
+  function setStop(on) {
+    const b = $('#btnAiStop');
+    if (b) b.disabled = !on;
+  }
+
+  /** AI javobini matn + ovozda aytish */
+  function aiSay(text, lang) {
+    chat.lastAi = text;
+    chatAdd('ai', text);
+    speakText(text, lang);
+  }
+
+  function speakText(text, lang) {
+    if (!window.RemoteTTS) return;
+    const want = lang === 'ru' ? 'ru' : 'uz';
+    RemoteTTS.stop();
+    setStop(true);
+    RemoteTTS.speak(text, want, {
+      onend: () => setStop(false)
+    }).then((ok) => {
+      setStop(false);
+      if (!ok) UI.toast('Server ovozi ishlamayapti', 'warn');
+    }).catch(() => setStop(false));
+  }
+
+  /** Foydalanuvchi savoliga javob: avval Gemini (LLM), ishlamasa — oflayn qoidalar */
+  async function chatAsk(raw, fromVoice) {
+    const q = String(raw || '').trim();
+    if (!q || chat.busy) return;
+    chatAdd('me', q);
+
+    if (!window.AIChat) { chatAdd('ai', 'AI moduli yuklanmagan'); return; }
+
+    const diag = state.aiDiag;
+    const lang = window.AIChat.langOf(diag, aiPerson());
+
+    if (fromVoice) {
+      const el = $('#aiChatLang');
+      if (el) el.textContent = lang === 'ru' ? 'til: русский' : "til: o'zbekcha";
+    }
+
+    chat.busy = true;
+    const think = chatAdd('ai', '…');
+    if (think) think.classList.add('live');
+
+    let text = null;
+    try {
+      const res = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: q, lang, diag, history: chat.history.slice(-8) })
+      });
+      if (res.ok) {
+        const j = await res.json();
+        if (j && j.reply) text = j.reply;
+      }
+    } catch { /* tarmoq xatosi — oflaynga tushamiz */ }
+
+    if (think && think.parentNode) think.parentNode.removeChild(think);
+
+    if (!text) {
+      // oflayn qoidalar dvijoki (fallback)
+      const a = window.AIChat.ask(q, diag, lang);
+      text = a.text;
+      chat.history.push({ role: 'user', text: q }, { role: 'ai', text });
+      chat.busy = false;
+      aiSay(text, lang);
+      return;
+    }
+
+    chat.history.push({ role: 'user', text: q }, { role: 'ai', text });
+    chat.busy = false;
+    aiSay(text, lang);
+  }
+
+  function bindAiChat() {
+    const form = $('#aiChatForm');
+    const input = $('#aiChatInput');
+    const btnSpeak = $('#btnAiSpeak');
+    const btnStop = $('#btnAiStop');
+    const btnMic = $('#btnAiMic');
+
+    if (form) form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const v = input ? input.value : '';
+      if (input) input.value = '';
+      chatAsk(v, false);
+    });
+
+    if (btnSpeak) btnSpeak.addEventListener('click', () => {
+      if (!chat.lastAi) { UI.toast('Avval savol bering', 'warn'); return; }
+      const diag = state.aiDiag;
+      speakText(chat.lastAi, window.AIChat ? window.AIChat.langOf(diag, aiPerson()) : 'uz');
+    });
+
+    if (btnStop) btnStop.addEventListener('click', () => {
+      if (window.RemoteTTS) RemoteTTS.stop();
+      setStop(false);
+    });
+
+    /* --------------------------- mikrofon --------------------------- */
+    if (!window.VoiceIn || !VoiceIn.available) {
+      if (btnMic) { btnMic.disabled = true; btnMic.title = 'Bu brauzerda mikrofon qo\'llab-quvvatlanmaydi'; }
+      return;
+    }
+
+    let finalBuf = '';
+
+    VoiceIn.on((text, interim) => {
+      const live = $('#aiChatLive');
+      if (interim) {
+        if (live) { live.hidden = false; live.textContent = '🎧 eshitilmoqda: ' + text; }
+        return;
+      }
+      if (live) { live.hidden = true; live.textContent = ''; }
+      finalBuf = text;
+      if (text) chatAsk(text, true);
+    });
+
+    VoiceIn.onState((st) => {
+      setMic(st === 'listen');
+      const live = $('#aiChatLive');
+      if (st === 'listen') {
+        finalBuf = '';
+        if (live) { live.hidden = false; live.textContent = '🎧 gapiring…'; }
+      } else if (st === 'idle' || st === 'error') {
+        if (live && !finalBuf) { live.hidden = true; live.textContent = ''; }
+        if (st === 'error') UI.toast('Mikrofon xatosi — ruxsat bering', 'error');
+      }
+    });
+
+    if (btnMic) btnMic.addEventListener('click', () => {
+      if (RemoteTTS && RemoteTTS.playing) RemoteTTS.stop();
+      setStop(false);
+      VoiceIn.start();
     });
   }
 

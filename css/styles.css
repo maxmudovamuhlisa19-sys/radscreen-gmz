@@ -1,5 +1,5 @@
 /* ========================================================================
-   RadSkrin — GMZ radiatsion nazorat tizimi
+   RadSkrin — NMKG radiatsion nazorat tizimi
    Dizayn tizimi: dark medical dashboard
    ======================================================================== */
 
@@ -650,6 +650,60 @@ body.auth-open { overflow: hidden; }
 .ai-item li { font-size: 12px; color: var(--muted); line-height: 1.45; }
 .ai-item-advice { font-size: 12px; color: var(--text); opacity: .88; margin-top: 7px; padding-top: 7px; border-top: 1px dashed var(--line); line-height: 1.45; }
 .ai-g-empty { font-size: 12.5px; color: var(--muted); text-align: center; padding: 16px 8px; }
+
+/* --------------------------- AI SUHBAT (chat) ----------------------------- */
+.ai-chat { margin-top: 14px; border: 1px solid var(--line); border-radius: 12px; background: rgba(2, 6, 23, .5); overflow: hidden; }
+.ai-chat-head { display: flex; justify-content: space-between; align-items: center; padding: 9px 12px; border-bottom: 1px solid var(--line); font-size: 13px; }
+.ai-chat-log { max-height: 260px; overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 8px; }
+.ai-chat-log .msg { max-width: 88%; padding: 8px 11px; border-radius: 12px; font-size: 13.2px; line-height: 1.5; white-space: pre-wrap; word-break: break-word; animation: msgIn .18s ease; }
+.ai-chat-log .msg.ai { align-self: flex-start; background: rgba(34, 211, 238, .10); border: 1px solid rgba(34, 211, 238, .25); border-bottom-left-radius: 4px; }
+.ai-chat-log .msg.me { align-self: flex-end; background: rgba(148, 163, 184, .14); border: 1px solid rgba(148, 163, 184, .25); border-bottom-right-radius: 4px; }
+.ai-chat-log .msg.live { align-self: flex-start; background: rgba(34, 211, 238, .05); border: 1px dashed rgba(34, 211, 238, .4); color: var(--muted); font-style: italic; }
+.ai-chat-log .msg .ts { display: block; margin-top: 4px; font-size: 10.5px; opacity: .55; }
+.ai-chat-live { padding: 6px 12px; font-size: 12.5px; color: var(--accent); border-top: 1px dashed var(--line); }
+.ai-chat-bar { display: flex; gap: 7px; align-items: center; padding: 9px; border-top: 1px solid var(--line); background: rgba(2, 6, 23, .45); }
+.ai-chat-bar input[type="text"] { flex: 1; min-width: 0; padding: 9px 11px; font-size: 13.5px; color: var(--text); background: rgba(2, 6, 23, .7); border: 1px solid var(--line); border-radius: 9px; outline: none; }
+.ai-chat-bar input[type="text"]:focus { border-color: var(--accent); }
+.ai-mic { width: 40px; height: 38px; flex: 0 0 auto; border: 1px solid var(--line); border-radius: 9px; background: rgba(2, 6, 23, .7); color: var(--text); font-size: 16px; cursor: pointer; transition: .15s; }
+.ai-mic:hover { border-color: var(--accent); }
+.ai-mic.rec { background: linear-gradient(145deg, #ef4444, #b91c1c); border-color: #ef4444; color: #fff; animation: micPulse 1.1s ease-in-out infinite; }
+@keyframes micPulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, .55); } 50% { box-shadow: 0 0 0 9px rgba(239, 68, 68, 0); } }
+@keyframes msgIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+@media (max-width: 560px) { .ai-chat-log .msg { max-width: 100%; } }
+
+/* ------------------------ ALKOHOL ANIQLASH PANELI ------------------------- */
+.alc-grid { display: grid; grid-template-columns: 1.15fr .85fr; gap: 14px; margin-top: 12px; }
+.alc-signals { display: flex; flex-direction: column; gap: 9px; }
+.alc-sig { display: grid; grid-template-columns: 1fr auto; gap: 3px 8px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 9px; background: rgba(2, 6, 23, .45); }
+.alc-sig .nm { font-size: 12.5px; color: var(--text); }
+.alc-sig .vl { font-size: 12.5px; font-weight: 700; color: var(--accent); text-align: right; }
+.alc-sig .bar { grid-column: 1 / -1; height: 6px; border-radius: 4px; background: rgba(148, 163, 184, .18); overflow: hidden; }
+.alc-sig .bar i { display: block; height: 100%; width: 0; background: var(--accent); transition: width .5s ease, background .3s; }
+.alc-sig.dim { opacity: .5; }
+.alc-form { padding: 10px; border: 1px solid var(--line); border-radius: 9px; background: rgba(2, 6, 23, .35); }
+.alc-drinks { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 7px; margin-bottom: 10px; }
+.alc-drink { display: flex; align-items: center; justify-content: space-between; gap: 6px; padding: 6px 8px; border: 1px solid var(--line); border-radius: 8px; font-size: 12.5px; }
+.alc-drink input { width: 54px; padding: 4px 6px; font-size: 13px; color: var(--text); background: rgba(2, 6, 23, .7); border: 1px solid var(--line); border-radius: 6px; text-align: center; }
+.alc-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 7px; font-size: 12.5px; color: var(--muted); }
+.alc-row input, .alc-row select { width: 110px; padding: 5px 7px; font-size: 13px; color: var(--text); background: rgba(2, 6, 23, .7); border: 1px solid var(--line); border-radius: 6px; }
+.alc-rt { padding: 10px; border: 1px solid var(--line); border-radius: 9px; text-align: center; background: rgba(2, 6, 23, .45); }
+.rt-target { margin-top: 8px; height: 84px; display: flex; align-items: center; justify-content: center; border-radius: 10px; font-size: 20px; font-weight: 800; cursor: pointer; user-select: none; transition: background .1s; }
+.rt-target.wait { background: rgba(148, 163, 184, .14); color: var(--muted); cursor: default; }
+.rt-target.go { background: linear-gradient(145deg, #22c55e, #15803d); color: #04210f; animation: rtPop .18s ease; }
+.rt-target.hit { background: rgba(34, 211, 238, .2); color: var(--accent); cursor: default; }
+@keyframes rtPop { from { transform: scale(.94); } to { transform: none; } }
+.alc-result { display: flex; flex-direction: column; align-items: center; gap: 7px; padding: 12px; border: 1px solid var(--line); border-radius: 11px; background: rgba(2, 6, 23, .5); }
+.alc-gauge { position: relative; width: 190px; }
+.alc-svg { width: 100%; height: auto; display: block; }
+.alc-svg .g-bg { fill: none; stroke: rgba(148, 163, 184, .2); stroke-width: 11; stroke-linecap: round; }
+.alc-svg .g-fg { fill: none; stroke: var(--accent); stroke-width: 11; stroke-linecap: round; stroke-dasharray: 157; stroke-dashoffset: 157; transition: stroke-dashoffset .8s ease, stroke .4s; }
+.alc-num { position: absolute; left: 0; right: 0; bottom: 0; text-align: center; }
+.alc-num b { display: block; font-size: 34px; line-height: 1; }
+.alc-num span { font-size: 11.5px; color: var(--muted); }
+.alc-verdict { font-size: 14.5px; font-weight: 700; text-align: center; padding: 5px 9px; border-radius: 8px; background: rgba(148, 163, 184, .12); }
+.alc-bac { font-size: 12.5px; color: var(--muted); }
+.alc-advice { margin: 0; padding-left: 17px; font-size: 12.5px; color: var(--text); line-height: 1.6; align-self: stretch; }
+@media (max-width: 900px) { .alc-grid { grid-template-columns: 1fr; } }
 
 .ai-disclaimer { margin-top: 14px; font-size: 12px; color: var(--muted); line-height: 1.55; background: rgba(148, 163, 184, .07); border-left: 3px solid var(--accent); border-radius: 8px; padding: 9px 12px; }
 

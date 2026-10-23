@@ -291,7 +291,7 @@ window.RadModel = (() => {
 
   /* ----------------------------- 9. Simulyatsiya --------------------------- */
 
-  /** GMZ hududlari uchun tipik doza tezliklari (demo / kalibratsiya) */
+  /** NMKG hududlari uchun tipik doza tezliklari (demo / kalibratsiya) */
   const ZONES = [
     { id: 'yard',     name: 'Ombor hovli (tashqi)',     rate: 0.14 },
     { id: 'office',   name: 'Ma\'muriy bino',            rate: 0.12 },

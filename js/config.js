@@ -6,7 +6,7 @@
  * O'zR Sog'liqni Saqlash Vazirligi normativ-huquqiy hujjatlari, UNSCEAR.
  */
 window.RadConfig = (() => {
-  // --- Tabiiy fon (GMZ uchun tipik qiymatlar), µSv/saat ---
+  // --- Tabiiy fon (NMKG uchun tipik qiymatlar), µSv/saat ---
   const BACKGROUND = { min: 0.10, typical: 0.16, max: 0.30 };
 
   // --- Chegaralar ---
@@ -117,7 +117,7 @@ window.RadConfig = (() => {
     SYMPTOMS,
     VISION_WEIGHTS,
     RISK_WEIGHTS,
-    ORGANIZATION: 'GMZ — Gornometallurg zavodi',
+    ORGANIZATION: 'NMKG — Gornometallurg zavodi',
     APP_NAME: 'RadSkrin'
   };
 })();

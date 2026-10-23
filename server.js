@@ -1,22 +1,111 @@
 'use strict';
 
 /**
- * RadSkrin — GMZ radiatsion nazorat tizimi
+ * RadSkrin — NMKG radiatsion nazorat tizimi
  * Zero-dependency Node.js server: statik fayllar + REST API (bemorlar / shifokor navbati)
  * Ishlatish:  node server.js  ->  http://localhost:3000
  */
 
 const http = require('http');
+const https = require('https');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+const { execFile } = require('child_process');
 const { URL } = require('url');
 
 const ROOT = __dirname;
 const DATA_DIR = path.join(ROOT, 'data');
+const TTS_DIR = path.join(DATA_DIR, 'tts');       // MP3 kesh
+const TTS_VOICES = {
+  uz: 'uz-UZ-SardorNeural',
+  uz_f: 'uz-UZ-MadinaNeural',
+  ru: 'ru-RU-DmitryNeural',
+  ru_f: 'ru-RU-SvetlanaNeural'
+};
+const TTS_TEXT_MAX = 600;
+const PY = process.env.PYTHON || 'python';
+
+function ttsCacheFile(voice, text) {
+  const h = crypto.createHash('sha1').update(voice + ' ' + text).digest('hex');
+  return path.join(TTS_DIR, `${h}.mp3`);
+}
+
+/** Matnni MP3 ga aylantiradi (keshdan yoki edge-tts orqali) */
+function ttsSynth(voice, text) {
+  const file = ttsCacheFile(voice, text);
+  return new Promise((resolve, reject) => {
+    fs.readFile(file, (err, buf) => {
+      if (!err && buf && buf.length > 200) return resolve(buf);
+      const args = ['-m', 'edge_tts', '--voice', voice, '--text', text, '--write-media', file];
+      execFile(PY, args, { timeout: 25000, windowsHide: true, maxBuffer: 1 << 20 }, (e, _o, er) => {
+        if (e) return reject(new Error(String(er || e.message || 'tts failed')));
+        fs.readFile(file, (e2, buf2) => {
+          if (e2 || !buf2 || buf2.length < 200) return reject(new Error('TTS audio yaratilmadi'));
+          resolve(buf2);
+        });
+      });
+    });
+  });
+}
+
 const PORT = process.argv.includes('--port')
   ? Number(process.argv[process.argv.indexOf('--port') + 1])
   : Number(process.env.PORT || 3000);
+
+/* --------------------------- Sun'iy ong (LLM) ----------------------------- */
+// Google Gemini — kalit faqat serverda (.env / GEMINI_API_KEY), brauzerga chiqmaydi.
+const GEMINI_KEY = (function () {
+  if (process.env.GEMINI_API_KEY) return process.env.GEMINI_API_KEY.trim();
+  try {
+    const txt = fs.readFileSync(path.join(ROOT, '.env'), 'utf8');
+    const m = txt.match(/^\s*(?:GEMINI_API_KEY|GOOGLE_API_KEY)\s*=\s*["']?([^"'\r\n]+)["']?/m);
+    return m ? m[1].trim() : '';
+  } catch { return ''; }
+})();
+const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-2.0-flash';
+const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models/' +
+  GEMINI_MODEL + ':generateContent';
+const LLM_TIMEOUT = 25000;
+
+function llmPost(payload) {
+  return new Promise((resolve, reject) => {
+    const body = JSON.stringify(payload);
+    const u = new URL(GEMINI_URL);
+    const req = https.request({
+      hostname: u.hostname,
+      path: u.pathname + u.search,
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json; charset=utf-8',
+        'Content-Length': Buffer.byteLength(body),
+        'x-goog-api-key': GEMINI_KEY
+      },
+      timeout: LLM_TIMEOUT
+    }, (res) => {
+      let raw = '';
+      res.setEncoding('utf8');
+      res.on('data', (c) => { raw += c; if (raw.length > 1e6) req.destroy(); });
+      res.on('end', () => {
+        if (res.statusCode !== 200) {
+          return reject(new Error('Gemini ' + res.statusCode + ': ' + raw.slice(0, 300)));
+        }
+        try {
+          const j = JSON.parse(raw);
+          const parts = (j.candidates && j.candidates[0] && j.candidates[0].content &&
+            j.candidates[0].content.parts) || [];
+          const text = parts.map((p) => p.text || '').join('').trim();
+          if (!text) return reject(new Error('Gemini bo\'sh javob'));
+          resolve(text);
+        } catch (e) { reject(new Error('Gemini JSON xato: ' + e.message)); }
+      });
+    });
+    req.on('timeout', () => { req.destroy(new Error('Gemini timeout')); });
+    req.on('error', reject);
+    req.write(body);
+    req.end();
+  });
+}
 
 const MIME = {
   '.html': 'text/html; charset=utf-8',
@@ -40,6 +129,7 @@ const DB = {
 
 function ensureStore() {
   if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
+  if (!fs.existsSync(TTS_DIR)) fs.mkdirSync(TTS_DIR, { recursive: true });
   Object.values(DB).forEach((f) => {
     if (!fs.existsSync(f)) fs.writeFileSync(f, '[]', 'utf8');
   });
@@ -246,6 +336,60 @@ async function handleAuth(req, res, action, method, subId) {
   return send(res, 404, { error: 'API topilmadi' });
 }
 
+/**
+ * LLM uchun tizim tavsifi: tahlil natijasi (diag) matnga aylantiriladi.
+ * diag — brauzerdan kelgan state.aiDiag obyekti.
+ */
+function buildSystem(diag, lang) {
+  const uz = lang !== 'ru';
+  const lines = [];
+
+  lines.push(uz
+    ? 'Sen — "RadSkrin" tibbiy AI yordamchisisan. NMKG (radiatsiya nazorati) tizimida bemor bilan o\'zbekcha suhbatlashasan.'
+    : 'Ты — медицинский ИИ-ассистент "RadSkrin". Ты общаешься с пациентом по-русски в системе дозиметрического контроля.');
+  lines.push(uz
+    ? 'Qoidalar: (1) faqat berilgan tahlil ma\'lumotiga tayan, taxmin qilma; (2) qisqa va tushunarli javob ber — 2-4 gap; (3) raqamlarni aniq ayt; (4) tashxis qo\'yma, shifokorga yuborishni maslahat ber; (5) xavfli yoki shubhali holatda oldindan xavotir oluvchi emas, balki aniq amaliy maslahat ber; (6) o\'zbek tilida oddiy so\'zlar bilan yoz (lotin yozuvida).'
+    : 'Правила: (1) опирайся только на данные обследования, ничего не выдумывай; (2) коротко, 2-4 предложения; (3) числа называй точно; (4) не ставь диагноз, направляй к врачу; (5) при тревожных данных давай конкретный практический совет, не пугай; (6) пиши по-русски, просто.');
+
+  if (diag && typeof diag === 'object') {
+    const g = (k, d) => (diag[k] === undefined || diag[k] === null ? d : diag[k]);
+    lines.push(uz ? '--- BEMOR TAHLIL MA\'LUMOTI ---' : '--- ДАННЫЕ ОБСЛЕДОВАНИЯ ---');
+    if (diag.personName) lines.push((uz ? 'Ismi: ' : 'Имя: ') + diag.personName);
+    lines.push((uz ? 'Holat: ' : 'Состояние: ') + (uz ? g('headlineUz', g('headline', '')) : g('headlineRu', g('headline', ''))));
+    lines.push((uz ? 'Xavf darajasi: ' : 'Уровень риска: ') + g('riskLabel', '?'));
+    lines.push((uz ? 'Sog\'lik yo\'qotish: ' : 'Потеря здоровья: ') + g('health', '?') + '%');
+    if (diag.cancerRiskPercent != null) {
+      lines.push((uz ? 'Omr boyi saraton xavfi: ' : 'Риск онкологии за жизнь: ') + diag.cancerRiskPercent + '%');
+    }
+    lines.push((uz ? 'Fon nurlanishi: ' : 'Фоновое излучение: ') + g('rate', '?') + ' µSv/h, kunlik normaning ' +
+      Math.round(Number(g('dayPercent', 0)) || 0) + '%');
+
+    const names = (arr, ru) => (Array.isArray(arr)
+      ? arr.slice(0, 8).map((i) => (ru ? (i.nameRu || i.name) : i.name)).filter(Boolean) : []);
+    if (Array.isArray(diag.present) && diag.present.length) {
+      lines.push((uz ? 'Aniqlangan kasalliklar: ' : 'Обнаруженные заболевания: ') + names(diag.present, !uz).join(', '));
+      diag.present.slice(0, 5).forEach((i) => {
+        const a = uz ? i.advice : (i.adviceRu || i.advice);
+        if (a) lines.push((uz ? 'Tavsiya (' : 'Совет (') + (uz ? i.name : (i.nameRu || i.name)) + '): ' + a);
+      });
+    } else {
+      lines.push(uz ? 'Aniqlangan kasalliklar: yo\'q' : 'Обнаруженные заболевания: нет');
+    }
+    if (Array.isArray(diag.suspect) && diag.suspect.length) {
+      lines.push((uz ? 'Shubhali: ' : 'Подозрение: ') + names(diag.suspect, !uz).join(', '));
+    }
+    if (Array.isArray(diag.absent) && diag.absent.length) {
+      lines.push((uz ? 'Yo\'q deb topilgan: ' : 'Не обнаружено: ') + names(diag.absent, !uz).slice(0, 8).join(', '));
+    }
+  } else {
+    lines.push(uz
+      ? 'Tahlil hali o\'tkazilmagan — buni ayt va Face ID yoki "Qayta tahlil qilish" orqali tahlil o\'tkazishni so\'ra.'
+      : 'Обследование ещё не проводилось — скажи об этом и предложи пройти Face ID или «Повторный анализ».');
+  }
+
+  return lines.join('\n');
+}
+
 /* ---------------------------------- API ----------------------------------- */
 
 async function handleApi(req, res, url) {
@@ -258,6 +402,63 @@ async function handleApi(req, res, url) {
 
   if (kind === 'health' && method === 'GET') {
     return send(res, 200, { ok: true, service: 'radscreen', time: new Date().toISOString() });
+  }
+
+  // GET /api/tts?text=...&lang=uz  ->  MP3 (Edge neural ovoz, kesh bilan)
+  if (kind === 'tts' && method === 'GET') {
+    const text = String(url.searchParams.get('text') || '').trim();
+    const lang = String(url.searchParams.get('lang') || 'uz').toLowerCase();
+    const voice = TTS_VOICES[lang] || TTS_VOICES.uz;
+    if (!text) return send(res, 400, { error: 'text parametri kerak' });
+    if (text.length > TTS_TEXT_MAX) {
+      return send(res, 413, { error: `Matn juda uzun (maks ${TTS_TEXT_MAX} belgi)` });
+    }
+    try {
+      const audio = await ttsSynth(voice, text);
+      res.writeHead(200, {
+        'Content-Type': 'audio/mpeg',
+        'Content-Length': audio.length,
+        'Cache-Control': 'public, max-age=31536000, immutable',
+        'X-TTS-Voice': voice
+      });
+      return res.end(audio);
+    } catch (e) {
+      return send(res, 502, { error: 'Ovoz generatsiya qilinmadi', detail: String(e.message || e) });
+    }
+  }
+
+  // POST /api/chat  { message, lang, diag } -> { reply }  (Gemini, fallback yo'q)
+  if (kind === 'chat' && method === 'POST') {
+    if (!GEMINI_KEY) {
+      return send(res, 503, { error: 'LLM kaliti sozlanmagan', code: 'no_key' });
+    }
+    let body;
+    try { body = await readBody(req); } catch (e) { return send(res, 400, { error: String(e.message || e) }); }
+    const message = String(body.message || '').trim();
+    const lang = body.lang === 'ru' ? 'ru' : 'uz';
+    if (!message) return send(res, 400, { error: 'message kerak' });
+    if (message.length > 800) return send(res, 413, { error: 'Savol juda uzun' });
+
+    try {
+      const sys = buildSystem(body.diag, lang);
+      const history = Array.isArray(body.history) ? body.history.slice(-8) : [];
+      const contents = [];
+      for (const h of history) {
+        const role = h.role === 'ai' ? 'model' : 'user';
+        const t = String(h.text || '').slice(0, 600);
+        if (t) contents.push({ role, parts: [{ text: t }] });
+      }
+      contents.push({ role: 'user', parts: [{ text: message }] });
+
+      const reply = await llmPost({
+        systemInstruction: { parts: [{ text: sys }] },
+        contents,
+        generationConfig: { temperature: 0.55, maxOutputTokens: 400, topP: 0.9 }
+      });
+      return send(res, 200, { reply: reply.slice(0, 1600), model: GEMINI_MODEL });
+    } catch (e) {
+      return send(res, 502, { error: 'LLM javob bermadi', detail: String(e.message || e) });
+    }
   }
 
   if (kind === 'auth') return handleAuth(req, res, itemId || '', method, parts[3] || '');
@@ -351,7 +552,7 @@ const server = http.createServer(async (req, res) => {
 
 server.listen(PORT, () => {
   console.log('------------------------------------------------------------');
-  console.log('  RadSkrin — GMZ radiatsion nazorat tizimi');
+  console.log('  RadSkrin — NMKG radiatsion nazorat tizimi');
   console.log(`  Server:  http://localhost:${PORT}`);
   console.log(`  Ma'lumotlar: ${DATA_DIR}`);
   console.log('  Toxtatish: Ctrl+C');

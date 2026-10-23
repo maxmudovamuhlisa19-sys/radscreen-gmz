@@ -6,9 +6,103 @@
     "dept": "Eritma sexsi",
     "year": 1987,
     "phone": "+998901112233",
-    "lastRate": 8.4,
-    "riskLabel": "Past xavf",
-    "riskColor": "#eab308"
+    "lastRate": 0.16,
+    "riskLabel": "Xavfsiz",
+    "riskColor": "#22c55e",
+    "visits": [
+      {
+        "t": 1791317324986,
+        "rate": 0.16,
+        "dose": 0.0038,
+        "dayPercent": 0,
+        "healthLoss": 12.1,
+        "riskKey": "safe",
+        "riskLabel": "Xavfsiz"
+      },
+      {
+        "t": 1791317803710,
+        "rate": 0.16,
+        "dose": 0.0038,
+        "dayPercent": 0,
+        "healthLoss": 12.1,
+        "riskKey": "safe",
+        "riskLabel": "Xavfsiz"
+      },
+      {
+        "t": 1791318354382,
+        "rate": 0.16,
+        "dose": 0.0038,
+        "dayPercent": 0,
+        "healthLoss": 12.1,
+        "riskKey": "safe",
+        "riskLabel": "Xavfsiz"
+      },
+      {
+        "t": 1791318528035,
+        "rate": 0.16,
+        "dose": 0.0038,
+        "dayPercent": 0,
+        "healthLoss": 12.1,
+        "riskKey": "safe",
+        "riskLabel": "Xavfsiz"
+      },
+      {
+        "t": 1791319814406,
+        "rate": 0.16,
+        "dose": 0.0038,
+        "dayPercent": 0,
+        "healthLoss": 12.1,
+        "riskKey": "safe",
+        "riskLabel": "Xavfsiz"
+      },
+      {
+        "t": 1791324710342,
+        "rate": 0.16,
+        "dose": 0.0038,
+        "dayPercent": 0,
+        "healthLoss": 12.1,
+        "riskKey": "safe",
+        "riskLabel": "Xavfsiz"
+      },
+      {
+        "t": 1791328417165,
+        "rate": 0.16,
+        "dose": 0.0038,
+        "dayPercent": 0,
+        "healthLoss": 12.1,
+        "riskKey": "safe",
+        "riskLabel": "Xavfsiz"
+      },
+      {
+        "t": 1791328539029,
+        "rate": 0.16,
+        "dose": 0.0038,
+        "dayPercent": 0,
+        "healthLoss": 12.1,
+        "riskKey": "safe",
+        "riskLabel": "Xavfsiz"
+      },
+      {
+        "t": 1791329407171,
+        "rate": 0.16,
+        "dose": 0.0038,
+        "dayPercent": 0,
+        "healthLoss": 12.1,
+        "riskKey": "safe",
+        "riskLabel": "Xavfsiz"
+      },
+      {
+        "t": 1791329445840,
+        "rate": 0.16,
+        "dose": 0.0038,
+        "dayPercent": 0,
+        "healthLoss": 12.1,
+        "riskKey": "safe",
+        "riskLabel": "Xavfsiz"
+      }
+    ],
+    "lastSeen": "2026-10-06T23:30:45.840Z",
+    "updatedAt": "2026-10-06T23:30:45.843Z"
   },
   {
     "id": "muolztie93gt1n",

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>RadSkrin — GMZ radiatsion nazorat va sog'lik skriningi</title>
+  <title>RadSkrin — NMKG radiatsion nazorat va sog'lik skriningi</title>
   <meta name="description" content="Radiatsiya dozasi, camera vision skriningi, sog'liq yo'qotish foizi va shifokor yo'llanmasi — avtomatik tizim." />
   <link rel="stylesheet" href="css/styles.css" />
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>☢️</text></svg>" />
@@ -137,7 +137,7 @@
         </div>
 
         <div class="sensor-row" id="zoneRow">
-          <label>Hudud (GMZ)</label>
+          <label>Hudud (NMKG)</label>
           <select id="zoneSelect"></select>
         </div>
 
@@ -343,9 +343,107 @@
         </div>
       </div>
     </div>
+
+    <!-- ==================== ALKOHOL ANIQLASH (5 signal) ==================== -->
+    <div class="card" id="alcCard">
+      <div class="card-head">
+        <h2>Alkogol aniqlash — ko'p signalli tahlil</h2>
+        <div class="row gap">
+          <button class="btn btn-ghost btn-sm" id="btnAlcSway">duranglik (kamera)</button>
+          <button class="btn btn-ghost btn-sm" id="btnAlcVoice">ovoz</button>
+          <button class="btn btn-primary btn-sm" id="btnAlcRun">🧪 To'liq test</button>
+        </div>
+      </div>
+
+      <div class="alc-grid">
+        <!-- signallar -->
+        <div class="alc-signals" id="alcSignals">
+          <div class="alc-sig" data-sig="sway">
+            <span class="nm">Duranglik (bosh silkinishi)</span>
+            <span class="vl" id="alcVSway">—</span>
+            <div class="bar"><i id="alcBSway"></i></div>
+          </div>
+          <div class="alc-sig" data-sig="reaction">
+            <span class="nm">Reaktsiya vaqti</span>
+            <span class="vl" id="alcVReact">—</span>
+            <div class="bar"><i id="alcBReact"></i></div>
+          </div>
+          <div class="alc-sig" data-sig="voice">
+            <span class="nm">Ovoz tebranishi (jitter)</span>
+            <span class="vl" id="alcVVoice">—</span>
+            <div class="bar"><i id="alcBVoice"></i></div>
+          </div>
+          <div class="alc-sig" data-sig="physio">
+            <span class="nm">Yuz qizarishi / puls</span>
+            <span class="vl" id="alcVPhys">—</span>
+            <div class="bar"><i id="alcBPhys"></i></div>
+          </div>
+          <div class="alc-sig" data-sig="self">
+            <span class="nm">Savolnoma (qon alkogoli)</span>
+            <span class="vl" id="alcVSelf">—</span>
+            <div class="bar"><i id="alcBSelf"></i></div>
+          </div>
+        </div>
+
+        <!-- reaktsiya testi -->
+        <div class="alc-rt" id="alcRt" hidden>
+          <div class="sub-title">Reaktsiya testi — ro'molcha paydo bo'lganda BOSING</div>
+          <div class="rt-target wait" id="rtTarget">…</div>
+          <div class="muted" id="rtStat">6 ta sinov</div>
+        </div>
+
+        <!-- savolnoma -->
+        <div class="alc-form">
+          <div class="sub-title">Savolnoma — nechta ichdingiz?</div>
+          <div class="alc-drinks" id="alcDrinks"></div>
+
+          <div class="alc-row">
+            <label>Oxirgi marta ichilgan vaqt (soat)</label>
+            <input type="number" id="alcHours" min="0" max="72" step="1" value="2" />
+          </div>
+          <div class="alc-row">
+            <label>Vazn (kg)</label>
+            <input type="number" id="alcWeight" min="30" max="250" step="1" value="75" />
+          </div>
+          <div class="alc-row">
+            <label>Pol</label>
+            <select id="alcSex">
+              <option value="male">Erkak</option>
+              <option value="female">Ayol</option>
+            </select>
+          </div>
+          <div class="alc-row">
+            <label>Shubhali xatti-harakat kuzatildimi? (urish, bezovtalik, noo'zgalik)</label>
+            <select id="alcBehaviour">
+              <option value="no">Yo'q</option>
+              <option value="yes">Ha</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- natija -->
+        <div class="alc-result" id="alcResult">
+          <div class="alc-gauge">
+            <svg viewBox="0 0 120 68" class="alc-svg">
+              <path class="g-bg" d="M10 60 A50 50 0 0 1 110 60" />
+              <path class="g-fg" id="alcArc" d="M10 60 A50 50 0 0 1 110 60" />
+            </svg>
+            <div class="alc-num"><b id="alcScore">—</b><span id="alcConf"></span></div>
+          </div>
+          <div class="alc-verdict" id="alcVerdict">Testni boshlang</div>
+          <div class="alc-bac" id="alcBac"></div>
+          <ul class="alc-advice" id="alcAdvice"></ul>
+        </div>
+      </div>
+
+      <div class="ai-disclaimer">
+        ⚕ Bu modul ko'p signalli skrining (duranglik + reaktsiya + ovoz + yuz + savolnoma).
+        U <b>tashxis emas</b> — yakuniy hukm shifokor yoki ekspertiza tomonidan beriladi.
+        Xavfli holatda 103 (shoshilinch yordam) yoki IIBga murojaat qiling.
+      </div>
+    </div>
   </div>
 
-  <!-- ==================== AI KLINIK XULOSA (suniy intellekt) ==================== -->
   <div class="card" id="aiCard">
     <div class="card-head">
       <h2 data-i18n="ai.title">🤖 AI klinik xulosa — kasalliklar (bor / yo'q)</h2>
@@ -368,6 +466,31 @@
     </div>
 
     <div class="ai-groups" id="aiGroups" hidden></div>
+
+    <!-- ============ AI SUHBAT (ovozli muloqot) ============ -->
+    <div class="ai-chat" id="aiChat">
+      <div class="ai-chat-head">
+        <b>💬 AI bilan suhbat</b>
+        <span class="muted" id="aiChatLang">til: o'zbekcha</span>
+      </div>
+
+      <div class="ai-chat-log" id="aiChatLog">
+        <div class="msg ai">
+          Assalomu alaykum! Men RadSkrin sun'iy intellektiman. Tahlil natijasi bo'yicha
+          savol bering — yozing yoki 🔺 tugmasini bosib ovozda gapiring.
+        </div>
+      </div>
+
+      <div class="ai-chat-live" id="aiChatLive" hidden></div>
+
+      <form class="ai-chat-bar" id="aiChatForm" autocomplete="off">
+        <button type="button" class="ai-mic" id="btnAiMic" title="Mikrofon bilan gapirish">🔺</button>
+        <input type="text" id="aiChatInput" placeholder="Savolingizni yozing…" />
+        <button type="submit" class="btn btn-primary btn-sm" id="btnAiSend">Yuborish</button>
+        <button type="button" class="btn btn-ghost btn-sm" id="btnAiSpeak" title="Oxirgi javobni ovozda aytish">🔊</button>
+        <button type="button" class="btn btn-ghost btn-sm" id="btnAiStop" disabled title="Ovozni to'xtatish">⏹</button>
+      </form>
+    </div>
 
     <div class="ai-disclaimer" data-i18n="ai.disclaimer">
       ⚕ AI xulosa oflayn qoidalar dvijoki (ICRP 103, WHO, BEIR VII, ICD-10) asosida tuziladi.
@@ -531,7 +654,11 @@
 <script defer src="js/radiation-model.js"></script>
 <script defer src="js/faceid.js"></script>
   <script defer src="js/ai-diagnosis.js"></script>
+<script defer src="js/tts.js"></script>
+<script defer src="js/ai-chat.js"></script>
+<script defer src="js/voice-in.js"></script>
 <script defer src="js/vision.js"></script>
+<script defer src="js/alcohol.js"></script>
 <script defer src="js/store.js"></script>
 <script defer src="js/ui.js"></script>
 <script defer src="js/auth.js"></script>
