@@ -1087,6 +1087,21 @@
     speakText(text, lang);
   }
 
+  /** Brauzer ovozi (Web Speech API) — server TTS ishlamasa fallback */
+  function browserSay(text, lang) {
+    if (!('speechSynthesis' in window)) return false;
+    try {
+      window.speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(String(text || '').slice(0, 600));
+      u.lang = lang === 'ru' ? 'ru-RU' : 'uz-UZ';
+      const vs = window.speechSynthesis.getVoices() || [];
+      const hit = vs.find((v) => v.lang && v.lang.slice(0, 2).toLowerCase() === (lang === 'ru' ? 'ru' : 'uz'));
+      if (hit) u.voice = hit;
+      window.speechSynthesis.speak(u);
+      return true;
+    } catch { return false; }
+  }
+
   function speakText(text, lang) {
     if (!window.RemoteTTS) return;
     const want = lang === 'ru' ? 'ru' : 'uz';
@@ -1096,7 +1111,7 @@
       onend: () => setStop(false)
     }).then((ok) => {
       setStop(false);
-      if (!ok) UI.toast('Server ovozi ishlamayapti', 'warn');
+      if (!ok && !browserSay(text, want)) UI.toast('Server ovozi ishlamayapti', 'warn');
     }).catch(() => setStop(false));
   }
 

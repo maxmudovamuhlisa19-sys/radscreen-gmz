@@ -3,6 +3,13 @@ services:
     name: radscreen-gmz
     runtime: node
     plan: free
-    buildCommand: npm install
+    aptPackages:
+      - python3
+      - python3-pip
+    buildCommand: pip3 install --break-system-packages --quiet edge-tts && npm install --omit=dev
     startCommand: npm start
+    healthCheckPath: /api/health
     autoDeploy: true
+    envVars:
+      - key: PYTHON
+        value: python3
