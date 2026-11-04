@@ -1152,7 +1152,7 @@
 
     if (!text) {
       // oflayn qoidalar dvijoki (fallback)
-      const a = window.AIChat.ask(q, diag, lang);
+      const a = window.AIChat.ask(q, diag, lang, chat.history);
       text = a.text;
       chat.history.push({ role: 'user', text: q }, { role: 'ai', text });
       chat.busy = false;
