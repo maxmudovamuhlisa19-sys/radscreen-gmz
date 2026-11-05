@@ -173,11 +173,16 @@ window.Auth = (() => {
     }
     try {
       regStream = await navigator.mediaDevices.getUserMedia({
-        video: { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: 'user' }
+        video: { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: { ideal: 'user' } }
       });
     } catch {
-      regStatus('Kamera uchun ruxsat bering yoki boshqa ilova yopilsin');
-      return;
+      // Android'da aniq constraint ba'zan ishlamaydi — yumshoqroq so'rov bilan qayta urinamiz
+      try {
+        regStream = await navigator.mediaDevices.getUserMedia({ video: true });
+      } catch {
+        regStatus('Kamera uchun ruxsat bering yoki boshqa ilova yopilsin');
+        return;
+      }
     }
     const v = $('#regVideo');
     v.srcObject = regStream;
@@ -404,7 +409,7 @@ window.Auth = (() => {
 
   return {
     register, login, logout, restore, onUnauthorized, on, setAfterAuth,
-    getToken, setToken, showScreen, hideScreen, renderBadge,
+    getToken, setToken, showScreen, hideScreen, renderBadge, stopRegFace,
     get user() { return user; }
   };
 })();

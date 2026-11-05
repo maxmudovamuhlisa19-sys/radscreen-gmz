@@ -304,18 +304,67 @@ window.VisionEngine = (() => {
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
         throw new Error('Bu brauzerda kamera API mavjud emas (HTTPS/localhost kerak).');
       }
-      this.stream = await navigator.mediaDevices.getUserMedia({
-        video: { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: 'user' },
-        audio: false
-      });
+
+      // Android: registratsiya kabi boshqa oqim kamerani band qilib qoymasin
+      try {
+        document.querySelectorAll('video').forEach((v) => {
+          if (v !== this.video && v.srcObject) {
+            v.srcObject.getTracks().forEach((t) => t.stop());
+            v.srcObject = null;
+          }
+        });
+      } catch { /* ignore */ }
+
+      // ketma-ket yumshoq constraint'lar — Android'da biri albatta ishlaydi
+      const attempts = [
+        { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: { ideal: 'user' } },
+        { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: { ideal: 'user' } },
+        { facingMode: { ideal: 'user' } },
+        true
+      ];
+      let lastErr = null;
+      for (const cand of attempts) {
+        try {
+          this.stream = await navigator.mediaDevices.getUserMedia({
+            video: cand === true ? true : cand, audio: false
+          });
+          break;
+        } catch (e) { lastErr = e; }
+      }
+      if (!this.stream) {
+        const n = lastErr && lastErr.name;
+        const msg =
+          (n === 'NotAllowedError' || n === 'PermissionDeniedError')
+            ? 'Kamera ruxsati rad etildi — brauzer sozlamalaridan ruxsat bering.'
+            : (n === 'NotFoundError' || n === 'DevicesNotFoundError')
+              ? 'Kamera topilmadi — qurilmada kamera yo\'q yoki band.'
+              : (n === 'NotReadableError' || n === 'TrackStartError')
+                ? 'Kamera boshqa ilova tomonidan band — boshqa ilovani yoping va qayta urining.'
+                : 'Kamera ochilmadi: ' + ((lastErr && lastErr.message) || n || 'noma\'lum xato');
+        throw new Error(msg);
+      }
+
       if (this.video) {
-        this.video.srcObject = this.stream;
-        await this.video.play().catch(() => {});
+        const v = this.video;
+        v.setAttribute('playsinline', '');
+        v.muted = true;
+        v.autoplay = true;
+        v.srcObject = this.stream;
+        // metadata kelishini kutamiz — Android'da erta play() rad etiladi
+        await new Promise((res) => {
+          if (v.readyState >= 1) return res();
+          const t = setTimeout(res, 3000);
+          v.addEventListener('loadedmetadata', () => { clearTimeout(t); res(); }, { once: true });
+        });
+        await v.play().catch(() => {});
       }
       this._buf = document.createElement('canvas');
       this._buf.width = W;
       this._buf.height = H;
       this._ctx = this._buf.getContext('2d', { willReadFrequently: true });
+      // Face ID uchun kichraytirilgan kadr (to'liq 1080p emas — telefonda tezroq)
+      this._faBuf = document.createElement('canvas');
+      this._faCtx = this._faBuf.getContext('2d', { willReadFrequently: true });
       this._reset();
       this.running = true;
       this.warmupUntil = performance.now() + 2000;
@@ -363,7 +412,18 @@ window.VisionEngine = (() => {
       const v = this.video;
       if (!v || v.readyState < 2 || !v.videoWidth) return;
 
-      this._ctx.drawImage(v, 0, 0, W, H);
+      const vw = v.videoWidth, vh = v.videoHeight;
+      // CSS object-fit: cover bilan mos — kadrni markazdan 4:3 kesib olamiz
+      // (to'liq 16:9 ni cho'zmaslik: aks holda yuz siqilib, aniqlash buziladi)
+      const tar = W / H;
+      let csx = 0, csy = 0, csw = vw, csh = vh;
+      if (vw / vh > tar + 0.01) {
+        csw = Math.round(vh * tar); csx = Math.round((vw - csw) / 2);
+      } else if (vw / vh < tar - 0.01) {
+        csh = Math.round(vw / tar); csy = Math.round((vh - csh) / 2);
+      }
+
+      this._ctx.drawImage(v, csx, csy, csw, csh, 0, 0, W, H);
       const img = this._ctx.getImageData(0, 0, W, H);
       const px = img.data;
 
@@ -378,16 +438,24 @@ window.VisionEngine = (() => {
       const mask = openMask(rawMask);
       const face = pickFace(components(mask), mask, gray);
 
-      /* --- Face API aniqlash: aniq quti + ko'z landmarks (~130ms) --- */
+      /* --- Face API aniqlash: kichraytirilgan kesilgan kadr (480×360) ---
+       * To'liq 1080p emas — telefonda ~4× tezroq, koordinatalar esa
+       * darhol 160×120 buferga mos (kx/ky bir xil). */
+      const FA_W = 480, FA_H = 360;
       this._faTick = (this._faTick || 0) + 1;
-      if (window.FaceID && FaceID.status === 'ready' && !FaceID.busy && this._faTick % 4 === 0) {
-        FaceID.compute(this.video)
+      if (window.FaceID && FaceID.status === 'ready' && !FaceID.busy &&
+          this._faTick % 4 === 0 && this._faBuf) {
+        if (this._faBuf.width !== FA_W) {
+          this._faBuf.width = FA_W;
+          this._faBuf.height = FA_H;
+        }
+        this._faCtx.drawImage(v, csx, csy, csw, csh, 0, 0, FA_W, FA_H);
+        FaceID.compute(this._faBuf)
           .then((r) => { if (r) this._fa = { ...r, at: performance.now() }; })
           .catch(() => {});
       }
-      const vw = v.videoWidth, vh = v.videoHeight;
       const fa = this._fa && now - this._fa.at < 1200 ? this._fa : null;
-      const kx = vw ? W / vw : 1, ky = vh ? H / vh : 1;
+      const kx = W / FA_W, ky = H / FA_H;
       const faBox = fa ? {
         x0: Math.round(clamp(fa.box.x0 * kx, 0, W - 1)),
         y0: Math.round(clamp(fa.box.y0 * ky, 0, H - 1)),
@@ -665,6 +733,10 @@ window.VisionEngine = (() => {
       const glow = info.parsed ? 'rgba(0,255,136,.85)'
         : info.found ? 'rgba(255,204,0,.85)' : 'rgba(255,45,149,.85)';
 
+      // Kompakt rejim (telefon/tablet): katta panel va yozuvlar yuzni yopmasligi
+      // uchun faqat ramka + bitta qator status chiziladi.
+      const compact = w < 520;
+
       // fon: AI nazorat to'ri (nuqtalar)
       g.save();
       g.fillStyle = 'rgba(34,211,238,.13)';
@@ -735,8 +807,8 @@ window.VisionEngine = (() => {
           g.restore();
         }
 
-        // 1) aylanuvchi tashqi halqalar (yuz tashqarisida)
-        {
+        // 1) aylanuvchi tashqi halqalar (yuz tashqarisida) — kompaktda yo'q
+        if (!compact) {
           g.save();
           g.translate(cx, cy);
           const R = Math.max(fw, fh) * 0.68;
@@ -765,8 +837,8 @@ window.VisionEngine = (() => {
         g.fillRect(fx, fy, fw, fh);
         g.restore();
 
-        // 3) yuz MESH to'ri — shaffof, yuzni bosmaydi
-        {
+        // 3) yuz MESH to'ri — shaffof, yuzni bosmaydi (kompaktda o'chiriladi)
+        if (!compact) {
           g.save();
           g.beginPath(); g.rect(fx, fy, fw, fh); g.clip();
           const COLS = 6, ROWS = 8;
@@ -820,9 +892,9 @@ window.VisionEngine = (() => {
           g.restore();
         }
 
-        // 4) landmark chiziqlari — ko'zlar, burun, og'iz + yorliqlar
+        // 4) landmark chiziqlari — ko'zlar, burun, og'iz + yorliqlar (kompaktda yo'q)
         let eL, eR, nose, mL, mR, chin;
-        {
+        if (!compact) {
           const eyes = info.eyes;
           if (eyes && eyes.length === 2) {
             eL = { x: mx(eyes[0].x), y: eyes[0].y * sy };
@@ -900,8 +972,8 @@ window.VisionEngine = (() => {
           g.restore();
         }
 
-        // 6) o'lchov belgilari (tick marks) — qutiyon chetida
-        {
+        // 6) o'lchov belgilari (tick marks) — qutiyon chetida (kompaktda yo'q)
+        if (!compact) {
           g.save();
           g.strokeStyle = 'rgba(226,232,240,.55)';
           g.lineWidth = 1;
@@ -937,8 +1009,8 @@ window.VisionEngine = (() => {
           g.restore();
         }
 
-        // 7) skaner progress bar (ramka ostida, segmentli)
-        {
+        // 7) skaner progress bar (ramka ostida, segmentli) — kompaktda yo'q
+        if (!compact) {
           const prog = info.parsed ? 1 : Math.min(0.96, (info.faceScore || 0) / 100);
           const bh2 = 5, by = fy + fh + 22;
           const segs = 24, sw = fw / segs;
@@ -967,19 +1039,25 @@ window.VisionEngine = (() => {
         g.fillRect(fx, fy + sp, fw, 1);
         g.restore();
 
-        // 9) sarlavha — AI tahlil yozuvi
-        g.save();
-        g.font = '700 11px ui-monospace, Consolas, monospace';
-        g.fillStyle = okColor;
-        g.shadowColor = glow; g.shadowBlur = 8;
-        const tag = info.parsed ? 'AI TAHLIL · ANIQLANDI'
-          : info.found ? 'AI SKANERLASH...' : 'YUZ QIDIRILMOQDA...';
-        g.fillText(tag, fx, fy - 9);
-        const pct = `${Math.round(info.faceScore || 0)}%`;
-        g.fillStyle = 'rgba(226,232,240,.9)';
-        g.shadowBlur = 0;
-        g.fillText(pct, fx + fw - g.measureText(pct).width, fy - 9);
-        g.restore();
+        // 9) sarlavha — AI tahlil yozuvi (kompaktda: qisqa, ramka ustida)
+        {
+          g.save();
+          g.font = '700 11px ui-monospace, Consolas, monospace';
+          g.fillStyle = okColor;
+          g.shadowColor = glow; g.shadowBlur = 8;
+          const tag = compact
+            ? `${Math.round(info.faceScore || 0)}%`
+            : (info.parsed ? 'AI TAHLIL · ANIQLANDI'
+              : info.found ? 'AI SKANERLASH...' : 'YUZ QIDIRILMOQDA...');
+          g.fillText(tag, fx, fy - 9);
+          if (!compact) {
+            const pct = `${Math.round(info.faceScore || 0)}%`;
+            g.fillStyle = 'rgba(226,232,240,.9)';
+            g.shadowBlur = 0;
+            g.fillText(pct, fx + fw - g.measureText(pct).width, fy - 9);
+          }
+          g.restore();
+        }
 
         // 10) ko'z nishonlari — faqat burchak yoylari (ko'zni yopmaydi)
         const drawRet = (px, py, r = 9) => {
@@ -1003,8 +1081,8 @@ window.VisionEngine = (() => {
           drawRet(cx + fw * 0.17, cy - fh * 0.14);
         }
 
-        // 11) ma'lumot chiplari (o'ng tomonda, chiziq bilan)
-        if (info.parsed || info.found) {
+        // 11) ma'lumot chiplari (o'ng tomonda, chiziq bilan) — kompaktda yo'q
+        if (!compact && (info.parsed || info.found)) {
           const chips = [];
           if (info.pallor != null) chips.push({ c: '#93c5fd', t: `PIGMENT ${info.pallor}` });
           if (info.pulse) chips.push({ c: '#4ade80', t: `PULSE ${info.pulse}` });
@@ -1035,8 +1113,8 @@ window.VisionEngine = (() => {
         }
       }
 
-      // tahlil paneli — AI yon ko'rinishi
-      {
+      // tahlil paneli — AI yon ko'rinishi (kompaktda: pastda bitta qator)
+      if (!compact) {
         const lines = [
           { c: acc, t: `◈ ${info.status.toUpperCase()}` },
           { c: '#e2e8f0', t: `yuz ${info.faceScore}% · sifat ${info.quality}%` },
@@ -1080,6 +1158,26 @@ window.VisionEngine = (() => {
         g.fillStyle = acc;
         g.shadowColor = acc; g.shadowBlur = 6;
         g.fillRect(8, by, pw * Math.min(1, (info.quality || 0) / 100), 3);
+        g.restore();
+      } else {
+        // KOMPAKT: kadr pastki chetida bitta qator — yuzni yopmaydi
+        const line = [
+          info.status.toUpperCase(),
+          `${info.faceScore}%`,
+          `sifat ${info.quality}%`,
+          ...(info.pulse ? [`${info.pulse}bpm`] : []),
+          ...(info.pallor != null ? [`pigment ${info.pallor}`] : [])
+        ].join(' · ');
+        g.save();
+        g.font = '600 10.5px ui-monospace, Consolas, monospace';
+        const tw = g.measureText(line).width;
+        const px0 = Math.max(4, (w - tw) / 2 - 7);
+        const py0 = h - 22;
+        g.fillStyle = 'rgba(2,6,23,.78)';
+        g.fillRect(px0, py0, tw + 14, 17);
+        g.fillStyle = acc;
+        g.shadowColor = glow; g.shadowBlur = 6;
+        g.fillText(line, px0 + 7, py0 + 12);
         g.restore();
       }
     }

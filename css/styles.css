@@ -774,3 +774,19 @@ body.auth-open { overflow: hidden; }
 .ai-hud .hud-sub { color: #67e8f9; font-size: 11px; letter-spacing: .8px; }
 .ai-hud .hud-pct { color: #4ade80; font-size: 11px; }
 @keyframes hudIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+/* ------------------------- MOBIL (Android): yuzni yopmasin ------------------ */
+@media (max-width: 640px) {
+  .id-banner {
+    top: 6px; padding: 5px 10px; font-size: 11.5px; gap: 6px;
+    max-width: 96%; border-radius: 9px;
+  }
+  .ai-hud {
+    left: 6px; bottom: 6px; padding: 5px 9px; gap: 1px;
+    font-size: 10.5px; border-radius: 6px;
+  }
+  .ai-hud .hud-name { font-size: 12.5px; }
+  .ai-hud .hud-sub, .ai-hud .hud-pct { font-size: 9.5px; letter-spacing: .4px; }
+  /* kichik ekranda kamera kartochkasi to'liq kenglikda — panel siqilmasin */
+  .cam-frame { border-radius: 10px; }
+}
