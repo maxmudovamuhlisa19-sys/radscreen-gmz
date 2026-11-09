@@ -928,63 +928,7 @@ window.VisionEngine = (() => {
         g.restore();
       }
 
-      // d) Peshona rPPG Pulse Sensor zonasi (Fotopletizmogramma nuqtasi)
-      if (!compact && fw > 100) {
-        const roiW = fw * 0.42, roiH = fh * 0.16;
-        const roiX = cx - roiW / 2, roiY = fy + fh * 0.12;
-        g.save();
-        g.strokeStyle = 'rgba(0, 229, 163, 0.45)';
-        g.lineWidth = 1;
-        g.setLineDash([3, 4]);
-        g.beginPath();
-        if (g.roundRect) g.roundRect(roiX, roiY, roiW, roiH, 4);
-        else g.rect(roiX, roiY, roiW, roiH);
-        g.stroke();
-        g.setLineDash([]);
-
-        // rPPG yorlig'i
-        g.font = '700 8.5px ui-monospace, Consolas, monospace';
-        g.fillStyle = '#00e5a3';
-        g.fillText('rPPG SENSOR', roiX + 5, roiY + 10);
-
-        // Puls urish indikatori
-        if (info.pulse) {
-          const pPulse = 0.5 + 0.5 * Math.sin(now / 110);
-          g.fillStyle = 'rgba(255, 51, 102, ' + (0.7 + pPulse * 0.3) + ')';
-          g.beginPath();
-          g.arc(roiX + roiW - 8, roiY + 7, 3, 0, Math.PI * 2);
-          g.fill();
-        }
-        g.restore();
-      }
-
-      // e) Ko'z biometrik nishonlari (Aniq, chigal chiziqlarsiz)
-      const drawEyeMarker = (ex, ey) => {
-        g.save();
-        g.strokeStyle = okColor;
-        g.shadowColor = glowColor;
-        g.shadowBlur = 6;
-        g.lineWidth = 1.4;
-        const eR = 9;
-        [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([dx, dy]) => {
-          g.beginPath();
-          g.moveTo(ex + dx * eR, ey + dy * (eR - 3));
-          g.lineTo(ex + dx * eR, ey + dy * eR);
-          g.lineTo(ex + dx * (eR - 3), ey + dy * eR);
-          g.stroke();
-        });
-        g.fillStyle = okColor;
-        g.beginPath();
-        g.arc(ex, ey, 1.8, 0, Math.PI * 2);
-        g.fill();
-        g.restore();
-      };
-      if (info.eyes && info.eyes.length === 2) {
-        drawEyeMarker(mx(info.eyes[0].x), info.eyes[0].y * sy);
-        drawEyeMarker(mx(info.eyes[1].x), info.eyes[1].y * sy);
-      }
-
-      // f) Yuz ramkasi tepasidagi Status Badge
+      // d) Yuz ramkasi tepasidagi Status Badge
       {
         g.save();
         const tag = info.parsed

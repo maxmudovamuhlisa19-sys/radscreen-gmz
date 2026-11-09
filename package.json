@@ -4,6 +4,7 @@
   "description": "NMKG uchun radiatsion nazorat va sog'liq skrining tizimi (camera vision + doza modeli)",
   "main": "server.js",
   "scripts": {
+    "postinstall": "pip3 install --break-system-packages --quiet edge-tts || pip3 install --quiet edge-tts || pip install --quiet edge-tts || true",
     "start": "node server.js",
     "dev": "node server.js --port 3000"
   },

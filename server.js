@@ -27,29 +27,46 @@ const TTS_VOICES = {
   en: 'en-US-JennyNeural'
 };
 const TTS_TEXT_MAX = 600;
-const PY = process.env.PYTHON || 'python';
+const PY = process.env.PYTHON || 'python3';
 
 function ttsCacheFile(voice, text) {
   const h = crypto.createHash('sha1').update(voice + ' ' + text).digest('hex');
   return path.join(TTS_DIR, `${h}.mp3`);
 }
 
-/** Matnni MP3 ga aylantiradi (keshdan yoki edge-tts orqali) */
-function ttsSynth(voice, text) {
+/** Matnni MP3 ga aylantiradi (keshdan yoki edge-tts orqali: python3 / edge-tts / python zanjiri) */
+async function ttsSynth(voice, text) {
   const file = ttsCacheFile(voice, text);
-  return new Promise((resolve, reject) => {
-    fs.readFile(file, (err, buf) => {
-      if (!err && buf && buf.length > 200) return resolve(buf);
-      const args = ['-m', 'edge_tts', '--voice', voice, '--text', text, '--write-media', file];
-      execFile(PY, args, { timeout: 25000, windowsHide: true, maxBuffer: 1 << 20 }, (e, _o, er) => {
-        if (e) return reject(new Error(String(er || e.message || 'tts failed')));
+  try {
+    const buf = await fs.promises.readFile(file);
+    if (buf && buf.length > 200) return buf;
+  } catch {}
+
+  const commands = [
+    { bin: process.env.PYTHON || 'python3', args: ['-m', 'edge_tts', '--voice', voice, '--text', text, '--write-media', file] },
+    { bin: 'edge-tts', args: ['--voice', voice, '--text', text, '--write-media', file] },
+    { bin: 'python', args: ['-m', 'edge_tts', '--voice', voice, '--text', text, '--write-media', file] },
+    { bin: 'python3', args: ['-m', 'edge_tts', '--voice', voice, '--text', text, '--write-media', file] }
+  ];
+
+  let lastErr = null;
+  for (const cmd of commands) {
+    const res = await new Promise((r) => {
+      execFile(cmd.bin, cmd.args, { timeout: 25000, windowsHide: true, maxBuffer: 1 << 20 }, (err, _o, er) => {
+        if (err) {
+          lastErr = String(er || err.message || '');
+          return r(null);
+        }
         fs.readFile(file, (e2, buf2) => {
-          if (e2 || !buf2 || buf2.length < 200) return reject(new Error('TTS audio yaratilmadi'));
-          resolve(buf2);
+          if (!e2 && buf2 && buf2.length > 200) return r(buf2);
+          r(null);
         });
       });
     });
-  });
+    if (res) return res;
+  }
+
+  throw new Error(lastErr || 'TTS audio yaratilmadi');
 }
 
 const PORT = process.argv.includes('--port')

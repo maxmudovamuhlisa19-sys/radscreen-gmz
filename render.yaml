@@ -1,12 +1,9 @@
 services:
   - type: web
-    name: radscreen-gmz
+    name: nmkg
     runtime: node
     plan: free
-    # Paketlar ro'yxati Blueprint sxemasida qo'llab-quvvatlanmaydi; Render node
-    # runtime da python3/pip3 odatda mavjud. edge-tts o'rnatilmasa — build baribir
-    # davom etadi (ovoz uchun brauzer Web Speech API fallback ishlaydi).
-    buildCommand: (pip3 install --break-system-packages --quiet edge-tts || pip3 install --quiet edge-tts || true) && npm install --omit=dev
+    buildCommand: pip3 install --break-system-packages edge-tts && npm install --omit=dev
     startCommand: npm start
     healthCheckPath: /api/health
     autoDeploy: true
