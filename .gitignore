@@ -6,3 +6,5 @@ server.log
 cv/
 __pycache__/
 data/tts/
+
+~$*

@@ -953,9 +953,10 @@
     if (window.RadAudio) window.RadAudio.playLockChime();
 
     // AI ovozli salomlashish (uz-UZ-MadinaNeural)
+    const displayName = (person.name || 'xodim').trim().replace(/^[a-z]/, (c) => c.toUpperCase());
     const greeting = isUser
-      ? `Assalomu alaykum, ${person.name}! Shaxsingiz Face ID orqali tasdiqlandi. 3D biometrik nazorat faol.`
-      : `Assalomu alaykum, ${person.name}! Shaxsingiz tasdiqlandi. Tibbiy skrining boshlandi.`;
+      ? `Assalomu alaykum, ${displayName}! Shaxsingiz 3D biometrik Face ID orqali tasdiqlandi. Nazorat faol.`
+      : `Assalomu alaykum, ${displayName}! Shaxsingiz tasdiqlandi. Tibbiy skrining boshlandi.`;
     aiSay(greeting, 'uz');
 
     // AI: ism + kasalliklar xulosasi (ekran)
@@ -1445,7 +1446,10 @@
     if (!('speechSynthesis' in window)) return false;
     try {
       window.speechSynthesis.cancel();
-      const u = new SpeechSynthesisUtterance(String(text || '').slice(0, 600));
+      const norm = window.RemoteTTS && window.RemoteTTS.normalizePhonetics
+        ? window.RemoteTTS.normalizePhonetics(text, lang)
+        : text;
+      const u = new SpeechSynthesisUtterance(String(norm || '').slice(0, 600));
       u.lang = lang === 'ru' ? 'ru-RU' : 'uz-UZ';
       const vs = window.speechSynthesis.getVoices() || [];
       const hit = vs.find((v) => /madina|female|woman|zira/i.test(v.name) && v.lang && v.lang.slice(0, 2).toLowerCase() === (lang === 'ru' ? 'ru' : 'uz'))

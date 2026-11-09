@@ -29,6 +29,45 @@ const TTS_VOICES = {
 const TTS_TEXT_MAX = 600;
 const PY = process.env.PYTHON || (process.platform === 'win32' ? 'python' : 'python3');
 
+/** O'zbek va rus tillarida qisqartma va texnik atamalarni tabiiy talaffuzga moslash */
+function normalizePhonetics(text, lang = 'uz') {
+  if (!text) return '';
+  let s = String(text);
+  if (lang === 'uz' || lang.startsWith('uz')) {
+    // 3D / 3d / 3-D -> uch de
+    s = s.replace(/\b3\s*[-–]?\s*[dD]\b/g, 'uch de');
+
+    // Face ID / FaceID / face id -> Feys aydi
+    s = s.replace(/\bFace[\s_-]*ID\b/gi, 'Feys aydi');
+
+    // biometrik ID -> biometrik aydi
+    s = s.replace(/\bbiometrik\s+ID\b/gi, 'biometrik aydi');
+    s = s.replace(/\bbio[\s-]+metrik\b/gi, 'biometrik');
+
+    // Standalone ID -> aydi
+    s = s.replace(/\bID\b/g, 'aydi');
+
+    // Ismlar: sarik -> Sarik, sardor -> Sardor (tabiiy intonatsiya uchun)
+    s = s.replace(/\bsarik\b/gi, 'Sarik');
+    s = s.replace(/\bsardor\b/gi, 'Sardor');
+
+    // Texnik va tibbiy birliklar
+    s = s.replace(/\brPPG\b/gi, 'er pe pe je');
+    s = s.replace(/\bAI\b/g, 'sun\'iy intellekt');
+    s = s.replace(/\bNMKG\b/gi, 'En Em Ka Ge');
+    s = s.replace(/µSv\/soat|uSv\/soat/gi, 'mikro zivert soat');
+    s = s.replace(/mSv\/soat/gi, 'milli zivert soat');
+    s = s.replace(/µSv|uSv/gi, 'mikro zivert');
+    s = s.replace(/mSv/gi, 'milli zivert');
+  } else if (lang === 'ru' || lang.startsWith('ru')) {
+    s = s.replace(/\b3\s*[-–]?\s*[dDдД]\b/gi, 'три дэ');
+    s = s.replace(/\bFace[\s_-]*ID\b/gi, 'Фейс айди');
+    s = s.replace(/\bID\b/g, 'айди');
+    s = s.replace(/\bбио[\s-]+метрический\b/gi, 'биометрический');
+  }
+  return s;
+}
+
 function ttsCacheFile(voice, text) {
   const h = crypto.createHash('sha1').update(voice + ' ' + text).digest('hex');
   return path.join(TTS_DIR, `${h}.mp3`);
@@ -433,8 +472,9 @@ async function handleApi(req, res, url) {
 
   // GET /api/tts?text=...&lang=uz  ->  MP3 (Edge neural ovoz, kesh bilan)
   if (kind === 'tts' && (method === 'GET' || method === 'HEAD')) {
-    const text = String(url.searchParams.get('text') || '').trim();
+    const rawText = String(url.searchParams.get('text') || '').trim();
     const lang = String(url.searchParams.get('lang') || 'uz').toLowerCase();
+    const text = normalizePhonetics(rawText, lang);
     const voiceParam = url.searchParams.get('voice');
     const voice = voiceParam || TTS_VOICES[lang] || TTS_VOICES.uz;
     if (!text) return send(res, 400, { error: 'text parametri kerak' });
