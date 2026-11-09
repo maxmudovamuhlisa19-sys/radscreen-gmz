@@ -8,7 +8,7 @@
   <meta http-equiv="Expires" content="0" />
   <title>RadSkrin — NMKG radiatsion nazorat va tibbiy skrining tizimi</title>
   <meta name="description" content="Radiatsiya dozasi, camera vision skriningi, biometrik Face ID, sog'liq yo'qotish foizi va shifokor yo'llanmasi — avtomatik intellektual tizim." />
-  <link rel="stylesheet" href="css/styles.css?v=3.1" />
+  <link rel="stylesheet" href="css/styles.css?v=4.0" />
   <link rel="manifest" href="manifest.json" />
   <meta name="theme-color" content="#030712" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -366,16 +366,14 @@
         </label>
       </div>
 
-      <!-- 3D Kamera va Datchik Boshqaruvi -->
-      <div class="row gap mt-sm" style="margin-top: 8px; align-items: center; flex-wrap: wrap; background: rgba(7, 15, 28, 0.45); padding: 8px 12px; border-radius: 10px; border: 1px solid rgba(0, 180, 216, 0.2);">
-        <select id="camDeviceSelect" class="input sm" style="max-width: 280px; font-size: 11.5px; background: rgba(7, 15, 28, 0.85); border-color: rgba(0, 180, 216, 0.4); color: #e2e8f0; border-radius: 6px;" title="Kamera va 3D IR datchikni tanlash">
-          <option value="">📷 Kamera (Avtomatik)</option>
+      <!-- Kamera tanlash (ASUS IR / WebCam) -->
+      <div class="row gap mt-sm" style="margin-top: 8px; align-items: center; flex-wrap: wrap; background: rgba(7, 15, 28, 0.45); padding: 6px 12px; border-radius: 10px; border: 1px solid rgba(0, 180, 216, 0.2);">
+        <span style="font-size: 11px; color: #00b4d8; font-weight: 600;">📷 Qurilma:</span>
+        <select id="camDeviceSelect" class="input sm" style="max-width: 280px; font-size: 11.5px; background: rgba(7, 15, 28, 0.85); border-color: rgba(0, 180, 216, 0.4); color: #e2e8f0; border-radius: 6px;" title="Kamerani tanlash">
+          <option value="">📷 Asosiy kamera (Avtomatik)</option>
         </select>
-        <button class="btn btn-ghost btn-sm" id="btnToggle3D" style="border-color: rgba(0, 229, 163, 0.5); color: #00e5a3; font-weight: 700; font-size: 11.5px;" title="3D Fazoviy Biometriya">
-          🧊 3D Rejim: FAOL
-        </button>
-        <span class="muted sm" id="cam3dBadge" style="font-size: 11px; color: #00e5a3; font-family: var(--mono);">
-          [3D IR DATCHIK TAYYOR]
+        <span class="muted sm" style="font-size: 11px; color: #00e5a3; font-family: var(--mono);">
+          [AI BIOMETRIK SKANER TAYYOR]
         </span>
       </div>
 
@@ -829,21 +827,21 @@
 </footer>
 
 <script defer src="vendor/face-api.js"></script>
-<script defer src="js/config.js?v=3.0"></script>
-<script defer src="js/i18n.js?v=3.0"></script>
-<script defer src="js/audio-synth.js?v=3.0"></script>
-<script defer src="js/radiation-model.js?v=3.0"></script>
-<script defer src="js/faceid.js?v=3.0"></script>
-<script defer src="js/ai-diagnosis.js?v=3.0"></script>
-<script defer src="js/tts.js?v=3.0"></script>
-<script defer src="js/ai-chat.js?v=3.0"></script>
-<script defer src="js/voice-in.js?v=3.0"></script>
-<script defer src="js/vision.js?v=3.0"></script>
-<script defer src="js/alcohol.js?v=3.0"></script>
-<script defer src="js/store.js?v=3.0"></script>
-<script defer src="js/qr.js?v=3.0"></script>
-<script defer src="js/ui.js?v=3.0"></script>
-<script defer src="js/auth.js?v=3.0"></script>
-<script defer src="js/app.js?v=3.0"></script>
+<script defer src="js/config.js?v=4.0"></script>
+<script defer src="js/i18n.js?v=4.0"></script>
+<script defer src="js/audio-synth.js?v=4.0"></script>
+<script defer src="js/radiation-model.js?v=4.0"></script>
+<script defer src="js/faceid.js?v=4.0"></script>
+<script defer src="js/ai-diagnosis.js?v=4.0"></script>
+<script defer src="js/tts.js?v=4.0"></script>
+<script defer src="js/ai-chat.js?v=4.0"></script>
+<script defer src="js/voice-in.js?v=4.0"></script>
+<script defer src="js/vision.js?v=4.0"></script>
+<script defer src="js/alcohol.js?v=4.0"></script>
+<script defer src="js/store.js?v=4.0"></script>
+<script defer src="js/qr.js?v=4.0"></script>
+<script defer src="js/ui.js?v=4.0"></script>
+<script defer src="js/auth.js?v=4.0"></script>
+<script defer src="js/app.js?v=4.0"></script>
 </body>
 </html>

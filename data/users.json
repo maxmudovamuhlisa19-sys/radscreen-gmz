@@ -6,7 +6,7 @@
     "role": "operator",
     "salt": "aea472711a02f61b6ce64a9c20646a20",
     "hash": "998ad5a8295ae2954669e39301a88fd7be6df29a023f7e781df75675ba2e39ad0e8ddb071e2f39f8fde9d4e70ecf9eb710f9fbd638ad827983c200ec1604f280",
-    "token": "bf0ed768937cf0be6e12aa5cabec420ae8fb656a3b58ac63",
+    "token": "01bdcae9dab0649c902d93e026f625e7c0bdd730d1563b58",
     "face": {
       "templates": [
         [
@@ -404,7 +404,7 @@
       "samples": 5
     },
     "createdAt": "2026-09-30T12:04:56.886Z",
-    "lastLogin": "2026-11-09T03:22:20.676Z"
+    "lastLogin": "2026-11-09T04:09:01.665Z"
   },
   {
     "id": "mur3swx7c43sad",

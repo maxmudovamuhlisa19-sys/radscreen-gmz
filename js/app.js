@@ -324,18 +324,6 @@
       }
     });
 
-    $('#btnToggle3D')?.addEventListener('click', () => {
-      if (!engine) return;
-      const on = engine.toggle3D();
-      const btn = $('#btnToggle3D');
-      if (btn) {
-        btn.textContent = on ? '🧊 3D Rejim: FAOL' : '⬜ 3D Rejim: O\'CHIQ';
-        btn.style.color = on ? '#00e5a3' : '#94a3b8';
-        btn.style.borderColor = on ? 'rgba(0, 229, 163, 0.5)' : 'rgba(148, 163, 184, 0.3)';
-      }
-      UI.toast(on ? '3D Fazoviy Biometriya yoqildi' : '2D Oddiy rejimga o\'tildi', 'ok');
-    });
-
     // Tezkor klinik demo ssenariylar
     $('#btnScenarioSafe')?.addEventListener('click', () => runDemoScenario('safe'));
     $('#btnScenarioWarn')?.addEventListener('click', () => runDemoScenario('warn'));
