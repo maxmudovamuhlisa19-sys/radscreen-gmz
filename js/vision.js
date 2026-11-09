@@ -783,6 +783,211 @@ window.VisionEngine = (() => {
       }
     }
 
+    /* ==================== 3D Holographic Head Model (Point Cloud) ============ */
+    static HEAD_3D_MODEL = (() => {
+      const numRings = 24, ptsPerRing = 24;
+      const vertices = [], lines = [];
+      for (let r = 0; r < numRings; r++) {
+        const v = r / (numRings - 1);
+        const y = -1.15 + v * 2.3;
+        let rx = 0.86, rz = 1.02;
+        if (v < 0.28) {
+          const t = v / 0.28;
+          rx = 0.38 + 0.48 * Math.sin(t * Math.PI * 0.5);
+          rz = 0.42 + 0.60 * Math.sin(t * Math.PI * 0.5);
+        } else if (v > 0.62 && v <= 0.88) {
+          const t = (v - 0.62) / 0.26;
+          rx = 0.86 - 0.38 * t;
+          rz = 1.02 - 0.32 * t;
+        } else if (v > 0.88) {
+          const t = (v - 0.88) / 0.12;
+          rx = 0.48 - 0.12 * t;
+          rz = 0.70 - 0.20 * t;
+        }
+        for (let p = 0; p < ptsPerRing; p++) {
+          const angle = (p / ptsPerRing) * Math.PI * 2;
+          let x = Math.sin(angle) * rx;
+          let z = Math.cos(angle) * rz;
+          // Burun suyagi va uchi (Nose bridge & tip protrusion)
+          if (v >= 0.46 && v <= 0.68 && Math.abs(x) < 0.26 && z > 0) {
+            const nv = 1 - Math.abs((v - 0.58) / 0.12);
+            const nx = 1 - Math.abs(x / 0.26);
+            z += Math.max(0, nv * nx * 0.40);
+          }
+          // Ko'z chuqurchalari (Eye sockets depression)
+          if (v >= 0.40 && v <= 0.50 && Math.abs(Math.abs(x) - 0.35) < 0.18 && z > 0.4) {
+            z -= 0.10;
+          }
+          // Quloqlar (Ears)
+          if (v >= 0.44 && v <= 0.66 && Math.abs(x) > 0.72 && Math.abs(z) < 0.35) {
+            const ev = Math.sin(((v - 0.44) / 0.22) * Math.PI);
+            x += (x > 0 ? 1 : -1) * ev * 0.16;
+            z += ev * 0.08;
+          }
+          // Lablar va iyak (Mouth & Chin arch)
+          if (v >= 0.70 && v <= 0.80 && Math.abs(x) < 0.28 && z > 0) {
+            const mv = Math.sin(((v - 0.70) / 0.10) * Math.PI);
+            z += mv * (1 - Math.abs(x / 0.28)) * 0.10;
+          }
+          vertices.push({ x, y, z, ring: r, col: p });
+        }
+      }
+      // Latitude ring lines
+      for (let r = 0; r < numRings; r++) {
+        for (let p = 0; p < ptsPerRing; p++) {
+          lines.push([r * ptsPerRing + p, r * ptsPerRing + ((p + 1) % ptsPerRing)]);
+        }
+      }
+      // Longitude lines
+      for (let r = 0; r < numRings - 1; r++) {
+        for (let p = 0; p < ptsPerRing; p++) {
+          lines.push([r * ptsPerRing + p, (r + 1) * ptsPerRing + p]);
+        }
+      }
+      return { vertices, lines };
+    })();
+
+    /* ------------------- 3D Point Cloud Head Renderer (Gologramma) ----------- */
+    _draw3DPointHead(g, cx, cy, rx, ry, yaw, pitch, roll, now, isLocked, labelText, showWireframe = true) {
+      g.save();
+
+      // 1. Markaziy gologramma nurlanishi (Vignette aura)
+      const haloR = Math.max(rx, ry) * 1.45;
+      const hGrd = g.createRadialGradient(cx, cy, haloR * 0.2, cx, cy, haloR);
+      hGrd.addColorStop(0, isLocked ? 'rgba(0, 229, 163, 0.14)' : 'rgba(0, 180, 255, 0.14)');
+      hGrd.addColorStop(0.65, isLocked ? 'rgba(0, 229, 163, 0.05)' : 'rgba(0, 120, 255, 0.05)');
+      hGrd.addColorStop(1, 'rgba(0, 0, 0, 0)');
+      g.fillStyle = hGrd;
+      g.beginPath();
+      g.arc(cx, cy, haloR, 0, Math.PI * 2);
+      g.fill();
+
+      // Orqa fon konsentrik fazoviy aylanasi
+      g.strokeStyle = isLocked ? 'rgba(0, 229, 163, 0.22)' : 'rgba(0, 180, 255, 0.18)';
+      g.lineWidth = 1;
+      g.setLineDash([6, 8]);
+      g.lineDashOffset = -(now / 80) % 14;
+      g.beginPath();
+      g.arc(cx, cy, haloR * 0.92, 0, Math.PI * 2);
+      g.stroke();
+      g.setLineDash([]);
+
+      // 2. 3D aylanish trigonometriyasi
+      const radY = (yaw * Math.PI) / 180;
+      const radP = (pitch * Math.PI) / 180;
+      const radR = (roll * Math.PI) / 180;
+
+      const cosY = Math.cos(radY), sinY = Math.sin(radY);
+      const cosP = Math.cos(radP), sinP = Math.sin(radP);
+      const cosR = Math.cos(radR), sinR = Math.sin(radR);
+
+      const camDist = 3.8;
+      const verts = VisionEngine.HEAD_3D_MODEL.vertices;
+      const projected = new Array(verts.length);
+
+      // Vertikal skaner to'lqini (Top-to-bottom laser sweep)
+      const scanYNorm = -1.15 + ((now / 1900) % 1) * 2.3;
+
+      for (let i = 0; i < verts.length; i++) {
+        const p = verts[i];
+
+        // Yaw
+        const x1 = p.x * cosY + p.z * sinY;
+        const z1 = -p.x * sinY + p.z * cosY;
+
+        // Pitch
+        const y2 = p.y * cosP - z1 * sinP;
+        const z2 = p.y * sinP + z1 * cosP;
+
+        // Roll
+        const x3 = x1 * cosR - y2 * sinR;
+        const y3 = x1 * sinR + y2 * cosR;
+
+        // Perspektiv masshtab
+        const fov = camDist / (camDist - z2);
+        const sx = cx + x3 * rx * fov;
+        const sy = cy + y2 * ry * fov;
+
+        // Skaner nuri yaqinligi
+        const dScan = Math.abs(p.y - scanYNorm);
+        const isScanActive = dScan < 0.18;
+        const scanBoost = isScanActive ? (1 - dScan / 0.18) : 0;
+
+        projected[i] = { sx, sy, z: z2, origY: p.y, scanBoost };
+      }
+
+      // 3. 3D Nozik Wireframe Bog'lamlari (Lattice grid lines)
+      if (showWireframe) {
+        const lines = VisionEngine.HEAD_3D_MODEL.lines;
+        g.lineWidth = 0.75;
+        for (let i = 0; i < lines.length; i++) {
+          const p1 = projected[lines[i][0]];
+          const p2 = projected[lines[i][1]];
+          const zAvg = (p1.z + p2.z) * 0.5;
+          if (zAvg < -0.15) continue;
+
+          const scanAvg = (p1.scanBoost + p2.scanBoost) * 0.5;
+          if (scanAvg > 0.3) {
+            g.strokeStyle = isLocked ? 'rgba(255, 255, 255, 0.75)' : 'rgba(0, 240, 255, 0.75)';
+          } else if (isLocked) {
+            g.strokeStyle = `rgba(0, 229, 163, ${0.12 + Math.max(0, zAvg) * 0.22})`;
+          } else {
+            g.strokeStyle = `rgba(0, 180, 255, ${0.12 + Math.max(0, zAvg) * 0.22})`;
+          }
+          g.beginPath();
+          g.moveTo(p1.sx, p1.sy);
+          g.lineTo(p2.sx, p2.sy);
+          g.stroke();
+        }
+      }
+
+      // 4. 3D LiDAR Nuqtalar Buluti (Point Cloud Dots)
+      for (let i = 0; i < projected.length; i++) {
+        const pt = projected[i];
+        const z = pt.z;
+        const isFront = z >= 0;
+        const boost = pt.scanBoost;
+
+        let dotR = isFront ? 1.4 + (z / 1.5) * 1.2 : 0.95;
+        if (boost > 0) dotR += boost * 1.5;
+
+        g.beginPath();
+        g.arc(pt.sx, pt.sy, dotR, 0, Math.PI * 2);
+
+        if (boost > 0.4) {
+          g.fillStyle = '#ffffff';
+          g.shadowColor = isLocked ? '#00e5a3' : '#00f0ff';
+          g.shadowBlur = 8;
+        } else if (isLocked) {
+          g.fillStyle = isFront ? '#00e5a3' : 'rgba(0, 229, 163, 0.28)';
+          g.shadowColor = 'rgba(0, 229, 163, 0.6)';
+          g.shadowBlur = isFront ? 4 : 0;
+        } else {
+          g.fillStyle = isFront ? '#00d2ff' : 'rgba(0, 140, 255, 0.25)';
+          g.shadowColor = 'rgba(0, 210, 255, 0.6)';
+          g.shadowBlur = isFront ? 4 : 0;
+        }
+        g.fill();
+      }
+      g.shadowBlur = 0;
+
+      // 5. Matn (Pastki qismdagi xuddi rasmdagidek yozuv)
+      if (labelText) {
+        g.font = 'italic 700 12.5px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+        g.textAlign = 'center';
+        g.textBaseline = 'middle';
+        const txtY = cy + ry + 36;
+
+        g.fillStyle = isLocked ? '#00e5a3' : '#ffffff';
+        g.shadowColor = isLocked ? 'rgba(0, 229, 163, 0.9)' : 'rgba(0, 210, 255, 0.85)';
+        g.shadowBlur = 10;
+        g.fillText(labelText, cx, txtY);
+        g.shadowBlur = 0;
+      }
+
+      g.restore();
+    }
+
     /* ------------------- Zamonaviy Medical Biometric Overlay ----------------- */
     _drawOverlay(box, info) {
       const c = this.overlay;
@@ -825,74 +1030,16 @@ window.VisionEngine = (() => {
         g.restore();
       }
 
-      // 2) AGAR YUZ ANIQLANMAGAN BO'LSA: Elegant Biometrik Siluet & Markazlash ramkasi
+      // 2) AGAR YUZ ANIQLANMAGAN BO'LSA: 3D Holographic Point Cloud Head (Foydalanuvchi rasmidagidek)
       if (!box) {
-        const cx0 = w * 0.5, cy0 = h * 0.45;
-        const rx = Math.min(w * 0.22, 115);
+        const cx0 = w * 0.5, cy0 = h * 0.44;
+        const rx = Math.min(w * 0.20, 110);
         const ry = rx * 1.34;
-        const pulse = 0.5 + 0.5 * Math.sin(now / 500);
+        const idleYaw = Math.sin(now / 950) * 16;
+        const idlePitch = Math.cos(now / 1400) * 8;
+        const idleRoll = Math.sin(now / 1600) * 2;
 
-        g.save();
-        // Yumshoq nafas oluvchi oval siluet
-        g.strokeStyle = 'rgba(0, 180, 216, ' + (0.3 + pulse * 0.25) + ')';
-        g.lineWidth = 2;
-        g.shadowColor = 'rgba(0, 180, 216, 0.45)';
-        g.shadowBlur = 10;
-        g.setLineDash([8, 8]);
-        g.lineDashOffset = -(now / 70) % 16;
-        g.beginPath();
-        g.ellipse(cx0, cy0, rx, ry, 0, 0, Math.PI * 2);
-        g.stroke();
-        g.setLineDash([]);
-        g.shadowBlur = 0;
-
-        // Siluet ichida nozik vertikal skaner nuri (faqat oval ichida)
-        g.save();
-        g.beginPath();
-        g.ellipse(cx0, cy0, rx, ry, 0, 0, Math.PI * 2);
-        g.clip();
-        const scanY = cy0 - ry + ((now / 22) % (ry * 2 + 50)) - 25;
-        const sGrd = g.createLinearGradient(0, scanY - 25, 0, scanY + 25);
-        sGrd.addColorStop(0, 'rgba(0, 229, 163, 0)');
-        sGrd.addColorStop(0.5, 'rgba(0, 229, 163, 0.20)');
-        sGrd.addColorStop(1, 'rgba(0, 229, 163, 0)');
-        g.fillStyle = sGrd;
-        g.fillRect(cx0 - rx, scanY - 25, rx * 2, 50);
-        g.fillStyle = 'rgba(0, 229, 163, 0.75)';
-        g.fillRect(cx0 - rx * 0.75, scanY, rx * 1.5, 1.5);
-        g.restore();
-
-        // 4 ta yo'naltiruvchi burchaklar
-        const fL = 20;
-        const fX = cx0 - rx - 12, fY = cy0 - ry - 12;
-        const fW = (rx + 12) * 2, fH = (ry + 12) * 2;
-        g.strokeStyle = 'rgba(0, 229, 163, ' + (0.4 + pulse * 0.3) + ')';
-        g.lineWidth = 2.5;
-        g.lineCap = 'round';
-        [[fX, fY, 1, 1], [fX + fW, fY, -1, 1], [fX, fY + fH, 1, -1], [fX + fW, fY + fH, -1, -1]].forEach(([px, py, dx, dy]) => {
-          g.beginPath();
-          g.moveTo(px + dx * fL, py);
-          g.lineTo(px, py);
-          g.lineTo(px, py + dy * fL);
-          g.stroke();
-        });
-
-        // Pastki zamonaviy tavsiya chipi
-        const hint = 'YUZINGIZNI RAMKAGA TO\'G\'RILANG';
-        g.font = '700 11px system-ui, -apple-system, sans-serif';
-        const tw = g.measureText(hint).width;
-        const hX = cx0 - tw / 2 - 14, hY = cy0 + ry + 22;
-        g.fillStyle = 'rgba(7, 15, 28, 0.85)';
-        g.beginPath();
-        if (g.roundRect) g.roundRect(hX, hY, tw + 28, 26, 13);
-        else g.rect(hX, hY, tw + 28, 26);
-        g.fill();
-        g.strokeStyle = 'rgba(0, 180, 216, 0.35)';
-        g.lineWidth = 1;
-        g.stroke();
-        g.fillStyle = '#00e5a3';
-        g.fillText(hint, cx0 - tw / 2, hY + 17);
-        g.restore();
+        this._draw3DPointHead(g, cx0, cy0, rx, ry, idleYaw, idlePitch, idleRoll, now, false, 'FACE RECOGNITION IS UNDER WAY...', true);
         return;
       }
 
@@ -975,13 +1122,21 @@ window.VisionEngine = (() => {
         g.restore();
       }
 
-      // b2) 3D FAZOVIY BIOMETRIYA (Apple Face ID & TrueDepth 3D Spatial Voxel Box)
+      // b2) 3D FAZOVIY BIOMETRIYA (Rasmdagi 3D Point Cloud Head Face Tracker)
       if (this.mode3D) {
         const pose = info.pose3d || { yaw: 0, pitch: 0, roll: 0, zDepthCm: 50 };
         const yaw = this._smoothYaw = (this._smoothYaw || 0) * 0.70 + (pose.yaw || 0) * 0.30;
         const pitch = this._smoothPitch = (this._smoothPitch || 0) * 0.70 + (pose.pitch || 0) * 0.30;
         const roll = this._smoothRoll = (this._smoothRoll || 0) * 0.70 + (pose.roll || 0) * 0.30;
         const depthCm = this._smoothDepth = (this._smoothDepth || 50) * 0.80 + (pose.zDepthCm || 50) * 0.20;
+
+        const hrx = fw * 0.44;
+        const hry = fh * 0.52;
+        const statusTxt = info.parsed
+          ? '✓ 3D BIOMETRIC FACE LOCKED · ANIQ'
+          : 'FACE RECOGNITION IS UNDER WAY...';
+
+        this._draw3DPointHead(g, cx, cy, hrx, hry, yaw, pitch, roll, now, info.parsed, statusTxt, true);
 
         const radYaw = (yaw * Math.PI) / 180;
         const radPitch = (pitch * Math.PI) / 180;
