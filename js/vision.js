@@ -616,7 +616,8 @@ window.VisionEngine = (() => {
         pulseConfidence: pulse ? round(pulse.conf, 1) : 0,
         stability,
         quality: round(quality),
-        motion: round(faceMotion, 2)
+        motion: round(faceMotion, 2),
+        ppgSamples: this._ppg && this._ppg.length ? this._ppg.slice(-80).map((x) => x.v) : []
       };
 
       this._drawOverlay(box, this.latest);

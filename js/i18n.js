@@ -1,19 +1,20 @@
 'use strict';
 
 /**
- * RadSkrin — xalqaroellashtirish (i18n): o'zbekcha / ruscha
+ * RadSkrin — xalqaroellashtirish (i18n): O'zbekcha / Русский / English
  *
- * Ishlash tartibi:
- *  1) HTML yorliqlariga data-i18n="kalit" (matn), data-i18n-ph="kalit" (placeholder),
- *     data-i18n-title="kalit" (title) beriladi — apply() ularni tarjima qiladi.
- *  2) Dynamic matnlar uchun I18n.t('kalit') chaqiriladi.
- *  3) Til localStorage'da saqlanadi, o'zgarsa 'langchange' hodisasi uzatiladi.
- *  4) Millatlar (nationality) ro'yxati ikki tilda ham mavjud.
+ * Imkoniyatlar:
+ *  1) DOM dagi data-i18n (textContent), data-i18n-ph (placeholder),
+ *     data-i18n-title (title) atributlarini tarjima qilish.
+ *  2) Dinamik matnlar uchun I18n.t(kalit) chaqiruvlari.
+ *  3) Til sozlamasini localStorage da saqlash va onLang obuna tizimi.
+ *  4) 3 ta to'liq til: UZ (O'zbekcha), RU (Русский), EN (English).
+ *  5) Millatlar (nationality) ro'yxati 3 tilda.
  */
 window.I18n = (() => {
   const KEY = 'radscreen.lang';
 
-  /* ----------------------------- Sözlav ----------------------------- */
+  /* ----------------------------- Lug'atlar ----------------------------- */
   const DICT = {
     uz: {
       // Kirish / registratsiya
@@ -21,15 +22,15 @@ window.I18n = (() => {
       'auth.register': '📝 Ro\'yxatdan o\'tish',
       'auth.login.title': 'Tizimga kirish',
       'auth.login.submit': 'Tizimga kirish',
-      'auth.login.desc': 'NMKG · radiatsion nazorat tizimi',
+      'auth.login.desc': 'NMKG · radiatsion nazorat va tibbiy skrining tizimi',
       'auth.fio': 'F.I.Sh. (ism familya)',
       'auth.login.ph': 'masalan: a.karimov',
       'auth.password': 'Parol',
       'auth.password.ph': 'kamida 6 ta belgi',
       'auth.password2': 'Parolni takrorlang',
       'auth.role': 'Rol',
-      'auth.role.operator': 'Ishchi',
-      'auth.role.doctor': 'Shifokor',
+      'auth.role.operator': 'Ishchi / Operator',
+      'auth.role.doctor': 'Shifokor / Radiolog',
       'auth.nation': 'Millat',
       'auth.nation.ph': 'Millatni tanlang',
       'auth.submit': 'Ro\'yxatdan o\'tish',
@@ -51,29 +52,41 @@ window.I18n = (() => {
       // Yuqori panel
       'top.lang': 'Til',
       'top.logout': 'Chiqish',
+      'top.sound.on': 'Ovoz yoqilgan (Geiger / Siren)',
+      'top.sound.off': 'Ovoz o\'chirilgan',
       'top.server.on': 'server onlayn',
-      'top.server.off': 'lokal rejim (localStorage)',
+      'top.server.off': 'lokal rejim (offline)',
       'top.checking': 'tekshirilmoqda...',
+      'top.org': 'NMKG · Gidrometallurgiya Zavodi · Radiatsion Xavfsizlik',
+
+      // Favqulodda ogohlantirish banneri
+      'alert.title': '⚠️ DIQQAT: RADIATSIYA ME\'YORDAN YUQORI!',
+      'alert.desc': 'Hududda nurlanish foni oshgan. Xodimlar shaxsiy himoya vositalarini taqsin va zaxira zonasiga o\'tsin.',
+      'alert.btn.mute': '🔕 Signalni o\'chirish',
+      'alert.btn.ref': '🏥 Shifokorga yo\'naltirish',
 
       // Sahifa sarlavhalari
-      'page.monitor': 'Monitoring',
-      'page.vision': 'Camera skriningi',
-      'page.patients': 'Bemorlar ro\'yxati',
-      'page.queue': 'Shifokor navbati — yo\'llanmalar',
-      'page.admin': 'Admin panel — foydalanuvchilar',
-      'page.method': 'Metodika',
+      'page.monitor': 'Monitoring va Dozimetriya',
+      'page.vision': 'Camera Skriningi va Biometriya',
+      'page.patients': 'Bemorlar va Xodimlar Reestri',
+      'page.queue': 'Shifokor Navbati — Yo\'llanmalar',
+      'page.admin': 'Admin Panel — Boshqaruv',
+      'page.method': 'Metodika va Standartlar',
 
       // Tugmalar
       'btn.analyze': '🔎 To\'liq tahlilni o\'tkazish',
       'btn.save.ref': '🏥 Yo\'llanmani navbatga qo\'shish',
-      'btn.print': '🖨 Chop etish',
+      'btn.print': '🖨 Chop etish (PDF)',
       'btn.cam.start': '▶ Kamerani yoqish',
       'btn.cam.stop': '■ To\'xtatish',
+      'btn.cam.snap': '📸 Skrining suratini olish',
       'btn.image': '🖼 Rasm yuklash',
       'btn.clear.ident': '✕ Tanishni tozalash',
       'btn.ai.run': '🔎 Qayta tahlil qilish',
-      'btn.add.patient': '+ Bemor qo\'shish',
+      'btn.add.patient': '+ Yangi bemor qo\'shish',
       'btn.export.csv': '⬇ CSV eksport',
+      'btn.backup': '📥 Zaxira nusxa (JSON)',
+      'btn.restore': '📤 Tiklash (JSON)',
       'btn.refresh': '⟳ Yangilash',
 
       // AI panel
@@ -95,7 +108,7 @@ window.I18n = (() => {
       'faceid.match': 'o\'xshashlik',
 
       // Bemorlar jadvali
-      'th.patient': 'Bemor',
+      'th.patient': 'Bemor / Xodim',
       'th.dept': 'Bo\'lim / hudud',
       'th.year': 'Tug\'ilgan yil',
       'th.phone': 'Telefon',
@@ -113,7 +126,8 @@ window.I18n = (() => {
       'msg.need.analysis': 'Avval tahlilni o\'tkazing',
       'msg.need.person': 'Shaxs/bemor tanlanmagan',
       'msg.ident.cleared': 'Identifikatsiya tozalandi',
-      'msg.lang.changed': 'Til o\'zgartirildi'
+      'msg.lang.changed': 'Til o\'zgartirildi',
+      'msg.snap.saved': 'Skrining surati saqlandi'
     },
 
     ru: {
@@ -122,15 +136,15 @@ window.I18n = (() => {
       'auth.register': '📝 Регистрация',
       'auth.login.title': 'Вход в систему',
       'auth.login.submit': 'Войти в систему',
-      'auth.login.desc': 'НМКГ · система радиационного контроля',
+      'auth.login.desc': 'НМКГ · радиационный контроль и медицинский скрининг',
       'auth.fio': 'Ф.И.О. (имя и фамилия)',
       'auth.login.ph': 'например: a.karimov',
       'auth.password': 'Пароль',
       'auth.password.ph': 'не менее 6 символов',
       'auth.password2': 'Повторите пароль',
       'auth.role': 'Роль',
-      'auth.role.operator': 'Рабочий',
-      'auth.role.doctor': 'Врач',
+      'auth.role.operator': 'Рабочий / Оператор',
+      'auth.role.doctor': 'Врач / Радиолог',
       'auth.nation': 'Национальность',
       'auth.nation.ph': 'Выберите национальность',
       'auth.submit': 'Зарегистрироваться',
@@ -152,29 +166,41 @@ window.I18n = (() => {
       // Верхняя панель
       'top.lang': 'Язык',
       'top.logout': 'Выход',
+      'top.sound.on': 'Звук включен (Гейгер / Сирена)',
+      'top.sound.off': 'Звук выключен',
       'top.server.on': 'сервер онлайн',
-      'top.server.off': 'локальный режим (localStorage)',
+      'top.server.off': 'локальный режим (offline)',
       'top.checking': 'проверка...',
+      'top.org': 'НМКГ · Гидрометаллургический завод · Радиационная безопасность',
+
+      // Баннер тревоги
+      'alert.title': '⚠️ ВНИМАНИЕ: РАДИАЦИЯ ВЫШЕ НОРМЫ!',
+      'alert.desc': 'Повышенный радиационный фон в зоне. Персоналу надеть средства защиты и перейти в укрытие.',
+      'alert.btn.mute': '🔕 Отключить звук',
+      'alert.btn.ref': '🏥 Направить к врачу',
 
       // Заголовки страниц
-      'page.monitor': 'Мониторинг',
-      'page.vision': 'Скрининг камеры',
-      'page.patients': 'Список пациентов',
-      'page.queue': 'Очередь врача — направления',
-      'page.admin': 'Админ-панель — пользователи',
-      'page.method': 'Методика',
+      'page.monitor': 'Мониторинг и Дозиметрия',
+      'page.vision': 'Скрининг Камеры и Биометрия',
+      'page.patients': 'Реестр Пациентов и Персонала',
+      'page.queue': 'Очередь Врача — Направления',
+      'page.admin': 'Админ-Панель — Управление',
+      'page.method': 'Методика и Стандарты',
 
       // Кнопки
       'btn.analyze': '🔎 Провести полный анализ',
       'btn.save.ref': '🏥 Добавить направление в очередь',
-      'btn.print': '🖨 Печать',
+      'btn.print': '🖨 Печать (PDF)',
       'btn.cam.start': '▶ Включить камеру',
       'btn.cam.stop': '■ Стоп',
+      'btn.cam.snap': '📸 Сделать снимок скрининга',
       'btn.image': '🖼 Загрузить фото',
       'btn.clear.ident': '✕ Сбросить опознание',
       'btn.ai.run': '🔎 Повторный анализ',
       'btn.add.patient': '+ Добавить пациента',
       'btn.export.csv': '⬇ Экспорт CSV',
+      'btn.backup': '📥 Бэкап (JSON)',
+      'btn.restore': '📤 Восстановить (JSON)',
       'btn.refresh': '⟳ Обновить',
 
       // AI панель
@@ -196,7 +222,7 @@ window.I18n = (() => {
       'faceid.match': 'сходство',
 
       // Таблица пациентов
-      'th.patient': 'Пациент',
+      'th.patient': 'Пациент / Работник',
       'th.dept': 'Отдел / зона',
       'th.year': 'Год рождения',
       'th.phone': 'Телефон',
@@ -214,75 +240,226 @@ window.I18n = (() => {
       'msg.need.analysis': 'Сначала выполните анализ',
       'msg.need.person': 'Лицо/пациент не выбраны',
       'msg.ident.cleared': 'Опознание сброшено',
-      'msg.lang.changed': 'Язык изменён'
+      'msg.lang.changed': 'Язык изменён',
+      'msg.snap.saved': 'Снимок скрининга сохранён'
+    },
+
+    en: {
+      // Auth
+      'auth.login': '🔑 Login',
+      'auth.register': '📝 Register',
+      'auth.login.title': 'System Login',
+      'auth.login.submit': 'Sign In',
+      'auth.login.desc': 'NMMC · Radiation Safety and Health Screening System',
+      'auth.fio': 'Full Name',
+      'auth.login.ph': 'e.g.: a.karimov',
+      'auth.password': 'Password',
+      'auth.password.ph': 'at least 6 characters',
+      'auth.password2': 'Repeat Password',
+      'auth.role': 'Role',
+      'auth.role.operator': 'Worker / Operator',
+      'auth.role.doctor': 'Doctor / Radiologist',
+      'auth.nation': 'Nationality',
+      'auth.nation.ph': 'Select nationality',
+      'auth.submit': 'Register Account',
+      'auth.wait': 'Please wait…',
+      'auth.face': 'Face Identification (Face ID) — optional',
+      'auth.face.add': '📷 Register Face (5 samples)',
+      'auth.face.on': '■ Stop Camera',
+      'auth.face.done': '✓ Face enrolled — retake',
+      'auth.face.wait': 'Camera off — click to enroll face',
+
+      // Main Navigation
+      'tab.monitor': '📊 Monitoring',
+      'tab.vision': '📷 Camera Screening',
+      'tab.patients': '🧑‍🤝‍🧑 Patients',
+      'tab.queue': '🏥 Doctor Queue',
+      'tab.admin': '🛠 Admin',
+      'tab.method': '📐 Methodology',
+
+      // Topbar
+      'top.lang': 'Language',
+      'top.logout': 'Logout',
+      'top.sound.on': 'Audio Active (Geiger / Alarm)',
+      'top.sound.off': 'Audio Muted',
+      'top.server.on': 'server online',
+      'top.server.off': 'local mode (offline)',
+      'top.checking': 'checking...',
+      'top.org': 'NMMC · Hydrometallurgical Plant · Radiation Safety',
+
+      // Warning Banner
+      'alert.title': '⚠️ WARNING: ELEVATED RADIATION LEVEL!',
+      'alert.desc': 'Radiation rate exceeds normal baseline. Personnel must equip protective gear and proceed to shelter.',
+      'alert.btn.mute': '🔕 Mute Alarm',
+      'alert.btn.ref': '🏥 Create Referral',
+
+      // Page Titles
+      'page.monitor': 'Monitoring & Dosimetry',
+      'page.vision': 'Camera Screening & Biometrics',
+      'page.patients': 'Patient & Personnel Registry',
+      'page.queue': 'Doctor Queue & Referrals',
+      'page.admin': 'Admin Panel & Control',
+      'page.method': 'Methodology & Standards',
+
+      // Buttons
+      'btn.analyze': '🔎 Run Full Analysis',
+      'btn.save.ref': '🏥 Add Referral to Queue',
+      'btn.print': '🖨 Print (PDF)',
+      'btn.cam.start': '▶ Start Camera',
+      'btn.cam.stop': '■ Stop Camera',
+      'btn.cam.snap': '📸 Take Screening Snapshot',
+      'btn.image': '🖼 Upload Photo',
+      'btn.clear.ident': '✕ Clear Identification',
+      'btn.ai.run': '🔎 Re-analyze',
+      'btn.add.patient': '+ Add Patient',
+      'btn.export.csv': '⬇ Export CSV',
+      'btn.backup': '📥 Backup (JSON)',
+      'btn.restore': '📤 Restore (JSON)',
+      'btn.refresh': '⟳ Refresh',
+
+      // AI panel
+      'ai.title': '🤖 AI Clinical Assessment — Findings (Present / Absent)',
+      'ai.empty': 'Identity not confirmed — use Face ID or select a patient, then click "Re-analyze".',
+      'ai.bor': 'Present (Confirmed)',
+      'ai.shubha': 'Suspect — Needs Check',
+      'ai.yoq': 'Absent (Not Found)',
+      'ai.group': 'Category',
+      'ai.conf': 'Confidence',
+      'ai.disclaimer': '⚕ AI evaluation based on rule engine (ICRP 103, WHO, BEIR VII, ICD-10). Not a definitive diagnosis — final judgment belongs to a physician.',
+
+      // Face ID
+      'faceid.title': '🪪 Face Identification (Face ID)',
+      'faceid.wait': 'Identifying face...',
+      'faceid.noface': 'No faces registered — enroll during registration',
+      'faceid.off': 'Camera is off',
+      'faceid.unknown': 'Unrecognized Person',
+      'faceid.match': 'similarity',
+
+      // Patient Table
+      'th.patient': 'Patient / Personnel',
+      'th.dept': 'Department / Zone',
+      'th.year': 'Birth Year',
+      'th.phone': 'Phone',
+      'th.visits': 'Visits',
+      'th.dose': 'Total Dose',
+      'th.risk': 'Latest Risk',
+      'th.face': 'Face ID',
+      'th.nation': 'Nationality',
+      'th.login': 'Login',
+      'th.role': 'Role',
+      'th.created': 'Registered At',
+      'th.lastlogin': 'Last Login',
+
+      // Messages
+      'msg.need.analysis': 'Please run analysis first',
+      'msg.need.person': 'No patient selected',
+      'msg.ident.cleared': 'Identification cleared',
+      'msg.lang.changed': 'Language changed',
+      'msg.snap.saved': 'Screening snapshot saved'
     }
   };
 
-  /* ------------------------- Millatlar (nation) ------------------------ */
+  /* ------------------------- Millatlar (nations) ------------------------ */
   const NATIONS = [
-    { id: 'uzbek', uz: "O'zbek", ru: 'Узбек' },
-    { id: 'russian', uz: 'Rus', ru: 'Русский' },
-    { id: 'tajik', uz: 'Tojik', ru: 'Таджик' },
-    { id: 'kazakh', uz: 'Qozoq', ru: 'Казах' },
-    { id: 'kyrgyz', uz: 'Qirg\'iz', ru: 'Киргиз' },
-    { id: 'turkmen', uz: 'Turkman', ru: 'Туркмен' },
-    { id: 'azerbaijani', uz: 'O\'zerbayjon', ru: 'Азербайджанец' },
-    { id: 'korean', uz: 'Koreys', ru: 'Кореец' },
-    { id: 'tatar', uz: 'Tatar', ru: 'Татарин' },
-    { id: 'bashkir', uz: 'Boshqird', ru: 'Башкир' },
-    { id: 'chinese', uz: 'Chin', ru: 'Китаец' },
-    { id: 'turkish', uz: 'Turk', ru: 'Турок' },
-    { id: 'ukrainian', uz: 'Ukrain', ru: 'Украинец' },
-    { id: 'belarusian', uz: 'Belarus', ru: 'Белорус' },
-    { id: 'armenian', uz: 'Arman', ru: 'Армянин' },
-    { id: 'georgian', uz: 'Gruzin', ru: 'Грузин' },
-    { id: 'moldovan', uz: 'Moldovan', ru: 'Молдован' },
-    { id: 'german', uz: 'Nemis', ru: 'Немец' },
-    { id: 'jewish', uz: 'Yahudiy', ru: 'Еврей' },
-    { id: 'uyghur', uz: 'Uyg\'ur', ru: 'Уйгур' },
-    { id: 'other', uz: 'Boshqa', ru: 'Другая' }
+    { id: 'uzbek', uz: "O'zbek", ru: 'Узбек', en: 'Uzbek' },
+    { id: 'russian', uz: 'Rus', ru: 'Русский', en: 'Russian' },
+    { id: 'tajik', uz: 'Tojik', ru: 'Таджик', en: 'Tajik' },
+    { id: 'kazakh', uz: 'Qozoq', ru: 'Казах', en: 'Kazakh' },
+    { id: 'kyrgyz', uz: "Qirg'iz", ru: 'Киргиз', en: 'Kyrgyz' },
+    { id: 'turkmen', uz: 'Turkman', ru: 'Туркмен', en: 'Turkmen' },
+    { id: 'azerbaijani', uz: "O'zarbayjon", ru: 'Азербайджанец', en: 'Azerbaijani' },
+    { id: 'korean', uz: 'Koreys', ru: 'Кореец', en: 'Korean' },
+    { id: 'tatar', uz: 'Tatar', ru: 'Татарин', en: 'Tatar' },
+    { id: 'bashkir', uz: 'Boshqird', ru: 'Башкир', en: 'Bashkir' },
+    { id: 'chinese', uz: 'Xitoylik', ru: 'Китаец', en: 'Chinese' },
+    { id: 'turkish', uz: 'Turk', ru: 'Турок', en: 'Turkish' },
+    { id: 'ukrainian', uz: 'Ukrain', ru: 'Украинец', en: 'Ukrainian' },
+    { id: 'belarusian', uz: 'Belarus', ru: 'Белорус', en: 'Belarusian' },
+    { id: 'armenian', uz: 'Arman', ru: 'Армянин', en: 'Armenian' },
+    { id: 'georgian', uz: 'Gruzin', ru: 'Грузин', en: 'Georgian' },
+    { id: 'moldovan', uz: 'Moldovan', ru: 'Молдован', en: 'Moldovan' },
+    { id: 'german', uz: 'Nemis', ru: 'Немец', en: 'German' },
+    { id: 'jewish', uz: 'Yahudiy', ru: 'Еврей', en: 'Jewish' },
+    { id: 'uyghur', uz: "Uyg'ur", ru: 'Уйгур', en: 'Uyghur' },
+    { id: 'other', uz: 'Boshqa', ru: 'Другая', en: 'Other' }
   ];
 
-  // Eslab qolinadigan tanlov yo'q — interfeys doimiy o'zbek tilida.
-  // AI ovozi esa shaxsning millatiga qarab avtomatik uz/ru bo'ladi (ai-diagnosis.js).
-  const lang = 'uz';
+  let currentLang = localStorage.getItem(KEY) || 'uz';
+  if (!DICT[currentLang]) currentLang = 'uz';
 
   const listeners = [];
   const onLang = (cb) => listeners.push(cb);
 
-  const t = (key) => (DICT[lang] && DICT[lang][key]) || DICT.uz[key] || key;
-
-  /** Millat id → hozirgi tilda nom */
-  const nation = (id) => {
-    const n = NATIONS.find((x) => x.id === id);
-    return n ? n[lang] : (id || '');
+  const t = (key) => {
+    const cur = DICT[currentLang] || DICT.uz;
+    return cur[key] || DICT.uz[key] || key;
   };
 
-  /** Millat nomi → id (registratsiyadan keyin saqlash uchun) */
+  /** Millat id → hozirgi tildagi nomi */
+  const nation = (id) => {
+    const n = NATIONS.find((x) => x.id === id);
+    return n ? (n[currentLang] || n.uz) : (id || '');
+  };
+
+  /** Millat nomi → id */
   const nationId = (nameOrId) => {
     const s = String(nameOrId || '').trim();
     if (!s) return '';
     const byId = NATIONS.find((x) => x.id === s);
     if (byId) return byId.id;
     const low = s.toLowerCase();
-    const byName = NATIONS.find((x) => x.uz.toLowerCase() === low || x.ru.toLowerCase() === low);
+    const byName = NATIONS.find(
+      (x) =>
+        x.uz.toLowerCase() === low ||
+        x.ru.toLowerCase() === low ||
+        (x.en && x.en.toLowerCase() === low)
+    );
     return byName ? byName.id : s;
   };
 
-  /** DOM'dagi data-i18n yorliqlarini tarjima qilish */
+  /** DOM'dagi barcha data-i18n elementlarini tarjima qilish */
   function apply(root = document) {
-    root.querySelectorAll('[data-i18n]').forEach((el) => { el.textContent = t(el.dataset.i18n); });
-    root.querySelectorAll('[data-i18n-ph]').forEach((el) => { el.placeholder = t(el.dataset.i18nPh); });
-    root.querySelectorAll('[data-i18n-title]').forEach((el) => { el.title = t(el.dataset.i18nTitle); });
-    document.documentElement.lang = lang;
+    root.querySelectorAll('[data-i18n]').forEach((el) => {
+      const val = t(el.dataset.i18n);
+      if (val) el.textContent = val;
+    });
+    root.querySelectorAll('[data-i18n-ph]').forEach((el) => {
+      const val = t(el.dataset.i18nPh);
+      if (val) el.placeholder = val;
+    });
+    root.querySelectorAll('[data-i18n-title]').forEach((el) => {
+      const val = t(el.dataset.i18nTitle);
+      if (val) el.title = val;
+    });
+    document.documentElement.lang = currentLang;
+
+    // Til tanlagich tugmalarini yangilash
+    document.querySelectorAll('[data-set-lang]').forEach((btn) => {
+      btn.classList.toggle('active', btn.dataset.setLang === currentLang);
+    });
   }
 
-  /** Endi til almashtirish yo'q — UI doimiy uz. Keyinchalik qayta tiklash mumkin. */
-  function setLang() { return lang; }
+  /** Tilni almashtirish */
+  function setLang(newLang) {
+    if (!DICT[newLang]) return currentLang;
+    currentLang = newLang;
+    localStorage.setItem(KEY, newLang);
+    apply();
+    listeners.forEach((cb) => {
+      try { cb(currentLang); } catch (e) { console.error('i18n callback error', e); }
+    });
+    return currentLang;
+  }
 
   return {
-    t, nation, nationId, apply, setLang, onLang, NATIONS,
-    get lang() { return lang; },
+    t,
+    nation,
+    nationId,
+    apply,
+    setLang,
+    onLang,
+    NATIONS,
+    get lang() { return currentLang; },
     get dict() { return DICT; }
   };
 })();

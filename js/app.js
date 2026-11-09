@@ -1,4 +1,4 @@
-﻿'use strict';
+'use strict';
 
 /**
  * RadSkrin — asosiy ilova (app.js)
@@ -27,7 +27,14 @@
     identified: null,
     identScore: 0,
     streak: { id: null, n: 0 },
-    userFaces: []          // registratsiyada yuz qo'shilgan xodimlar (serverdan)
+    userFaces: [],          // registratsiyada yuz qo'shilgan xodimlar (serverdan)
+    chartRangeHours: 24,
+    patientSearch: '',
+    patientFilter: 'all',
+    queueFilter: 'all',
+    adminUserSearch: '',
+    adminUsers: [],
+    lastSnapshot: null
   };
 
   const engine = new window.VisionEngine.VisionEngine({
@@ -240,9 +247,59 @@
     $('#btnSerial').addEventListener('click', connectSerial);
     $('#btnQuickReferral').addEventListener('click', quickReferral);
 
+    // Tovush (audio) tugmasi
+    const btnAudio = $('#btnAudioToggle');
+    if (btnAudio) {
+      const updateAudioIcon = () => {
+        const on = window.RadAudio && window.RadAudio.isEnabled;
+        $('#iconSound').textContent = on ? '🔊' : '🔇';
+        btnAudio.classList.toggle('muted', !on);
+        btnAudio.title = on ? I18n.t('top.sound.on') : I18n.t('top.sound.off');
+      };
+      btnAudio.addEventListener('click', () => {
+        const nowEnabled = window.RadAudio.toggle();
+        updateAudioIcon();
+        UI.toast(nowEnabled ? I18n.t('top.sound.on') : I18n.t('top.sound.off'), 'info');
+      });
+      updateAudioIcon();
+    }
+
+    // Til tanlagichlar (UZ / RU / EN)
+    document.querySelectorAll('[data-set-lang]').forEach((b) => {
+      b.addEventListener('click', () => {
+        I18n.setLang(b.dataset.setLang);
+        if (window.RadAudio) window.RadAudio.playUiClick();
+      });
+    });
+
+    // Favqulodda ogohlantirish banneri tugmalari
+    const bMute = $('#btnMuteAlert');
+    if (bMute) {
+      bMute.addEventListener('click', () => {
+        if (window.RadAudio) window.RadAudio.stopAlarm();
+        UI.toast('Signal ovozi to\'xtatildi', 'info');
+      });
+    }
+    const bAlertRef = $('#btnAlertReferral');
+    if (bAlertRef) {
+      bAlertRef.addEventListener('click', () => quickReferral());
+    }
+
+    // Grafik vaqt diapazoni (24s / 6s / 1s)
+    UI.$$('#chartRangeSeg .seg-btn').forEach((b) => {
+      b.addEventListener('click', () => {
+        UI.$$('#chartRangeSeg .seg-btn').forEach((x) => x.classList.toggle('active', x === b));
+        state.chartRangeHours = Number(b.dataset.range) || 24;
+        renderChart();
+        if (window.RadAudio) window.RadAudio.playUiClick();
+      });
+    });
+
     // kamera
     $('#btnCamStart').addEventListener('click', startCamera);
     $('#btnCamStop').addEventListener('click', stopCamera);
+    const bSnap = $('#btnCamSnap');
+    if (bSnap) bSnap.addEventListener('click', () => takeScreeningSnapshot());
     $('#imgInput').addEventListener('change', onImageUpload);
 
     // tahlil
@@ -250,7 +307,23 @@
     $('#btnSaveReferral').addEventListener('click', saveReferral);
     $('#btnPrintReferral').addEventListener('click', () => printReferral(state.referral));
 
-    // bemorlar
+    // bemorlar qidiruvi va filtri
+    const pSearch = $('#patientSearch');
+    if (pSearch) {
+      pSearch.addEventListener('input', (e) => {
+        state.patientSearch = e.target.value.toLowerCase().trim();
+        renderPatients();
+      });
+    }
+    UI.$$('#patientFilterPills .filter-pill').forEach((b) => {
+      b.addEventListener('click', () => {
+        UI.$$('#patientFilterPills .filter-pill').forEach((x) => x.classList.toggle('active', x === b));
+        state.patientFilter = b.dataset.pfilter || 'all';
+        renderPatients();
+        if (window.RadAudio) window.RadAudio.playUiClick();
+      });
+    });
+
     $('#btnAddPatient').addEventListener('click', () => UI.openModal('modalPatient'));
     $('#patientForm').addEventListener('submit', addPatient);
     $('#btnExportPatients').addEventListener('click', () => {
@@ -260,6 +333,17 @@
       }));
       Store.exportCsv(rows, 'bemorlar.csv') || UI.toast("Ma'lumot yo'q", 'warn');
     });
+
+    // Shifokor navbati filtri
+    UI.$$('#queueFilterPills .filter-pill').forEach((b) => {
+      b.addEventListener('click', () => {
+        UI.$$('#queueFilterPills .filter-pill').forEach((x) => x.classList.toggle('active', x === b));
+        state.queueFilter = b.dataset.qfilter || 'all';
+        renderQueue();
+        if (window.RadAudio) window.RadAudio.playUiClick();
+      });
+    });
+
     $('#btnExportRefs').addEventListener('click', () => {
       const rows = state.referrals.map((r) => ({
         Bemor: r.patient?.name || r.patientName || '—',
@@ -294,7 +378,59 @@
       UI.toast('Identifikatsiya tozalandi', 'ok');
     });
 
-    // Admin panel: foydalanuvchini o'chirish
+    // Admin panel: qidiruv, backup, restore va yangilash
+    const aSearch = $('#adminUserSearch');
+    if (aSearch) {
+      aSearch.addEventListener('input', (e) => {
+        state.adminUserSearch = e.target.value.toLowerCase().trim();
+        filterAdminUsers();
+      });
+    }
+
+    const bBackup = $('#btnBackupDb');
+    if (bBackup) {
+      bBackup.addEventListener('click', () => {
+        const backup = {
+          app: 'RadSkrin',
+          version: '2.0',
+          exportedAt: new Date().toISOString(),
+          patients: state.patients,
+          referrals: state.referrals
+        };
+        const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = `radskrin_backup_${new Date().toISOString().slice(0, 10)}.json`;
+        a.click();
+        URL.revokeObjectURL(a.href);
+        UI.toast('Zaxira nusxasi yuklab olindi (JSON)', 'ok');
+      });
+    }
+
+    const inputRestore = $('#inputRestoreDb');
+    if (inputRestore) {
+      inputRestore.addEventListener('change', async (e) => {
+        const file = e.target.files && e.target.files[0];
+        if (!file) return;
+        try {
+          const txt = await file.text();
+          const j = JSON.parse(txt);
+          if (j.patients && Array.isArray(j.patients)) {
+            for (const p of j.patients) await Store.patients.create(p);
+          }
+          if (j.referrals && Array.isArray(j.referrals)) {
+            for (const r of j.referrals) await Store.referrals.create(r);
+          }
+          await loadPatients();
+          await loadReferrals();
+          UI.toast('Ma\'lumotlar tiklandi!', 'ok');
+        } catch (err) {
+          UI.toast('Tiklashda xatolik: ' + err.message, 'error');
+        }
+        e.target.value = '';
+      });
+    }
+
     $('#btnAdminRefresh').addEventListener('click', () => loadAdminUsers());
     $('#adminRows').addEventListener('click', async (e) => {
       const btn = e.target.closest('[data-del-user]');
@@ -318,6 +454,29 @@
         btn.disabled = false;
       }
     });
+
+    // Global tezkor tugmalar (Keyboard Shortcuts)
+    window.addEventListener('keydown', (e) => {
+      if (['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName)) return;
+      if (e.key === 'm' || e.key === 'M') {
+        const nowOn = window.RadAudio.toggle();
+        const bA = $('#btnAudioToggle');
+        if (bA) {
+          $('#iconSound').textContent = nowOn ? '🔊' : '🔇';
+          bA.classList.toggle('muted', !nowOn);
+        }
+        UI.toast(nowOn ? I18n.t('top.sound.on') : I18n.t('top.sound.off'), 'info');
+      } else if (e.key === 'Escape') {
+        UI.$$('.modal.open').forEach((m) => UI.closeModal(m.id));
+      } else if (e.key >= '1' && e.key <= '6') {
+        const tabNames = ['monitor', 'vision', 'patients', 'queue', 'admin', 'method'];
+        const idx = Number(e.key) - 1;
+        if (tabNames[idx]) goTab(tabNames[idx]);
+      } else if (e.key === ' ' && $('#page-vision').classList.contains('active')) {
+        e.preventDefault();
+        runAnalysis();
+      }
+    });
   }
 
   /* ========================== RATE / HISTORY ========================= */
@@ -332,6 +491,7 @@
     if (state.history.length > 240) state.history.shift();
     const vis = $('#visionRate');
     if (vis && document.activeElement !== vis) vis.value = state.rate;
+    if (window.RadAudio) window.RadAudio.updateRate(state.rate);
   }
 
   // jonli tarix (simulyatsiya: har 5 sekundda nuqta qo'shiladi)
@@ -357,6 +517,29 @@
 
   function renderMonitor(a) {
     const color = a.tier.color;
+
+    // Topbar jonli threat pill
+    const tp = $('#threatPill');
+    if (tp) {
+      $('#threatPillRate').textContent = `${a.doses.rate} µSv/h`;
+      $('#threatPillLabel').textContent = a.tier.label;
+      tp.className = `threat-pill ${a.tier.key}`;
+    }
+
+    // Favqulodda ogohlantirish banneri (agar doza me'yordan yuqori bo'lsa)
+    const alertBanner = $('#alertBanner');
+    if (alertBanner) {
+      if (a.doses.rate >= 1.0) {
+        alertBanner.hidden = false;
+        const ratio = (a.doses.rate / C.BACKGROUND.typical).toFixed(1);
+        $('#alertBannerTitle').textContent = a.doses.rate >= 5.0
+          ? `☣️ FAVQULODDA RADIATSIYA XAVFI! (${a.doses.rate} µSv/h)`
+          : `⚠️ DIQQAT: RADIATSIYA ME'YORDAN YUQORI! (${a.doses.rate} µSv/h)`;
+        $('#alertBannerText').textContent = `Joriy doza tabiiy fondan ${ratio} baravar oshgan (${a.doses.rate} µSv/soat). Hududdagi xodimlar shaxsiy himoya vositalarini taqsin va zaxira hududiga o'tsin!`;
+      } else {
+        alertBanner.hidden = true;
+      }
+    }
 
     // gauge
     $('#gaugeWrap').innerHTML = UI.gauge(
@@ -422,16 +605,73 @@
   }
 
   function renderChart() {
-    UI.lineChart($('#doseChart'), state.history, {
+    const rangeMs = (state.chartRangeHours || 24) * 3600 * 1000;
+    const now = Date.now();
+    const filteredHistory = state.history.filter((d) => now - d.t <= rangeMs);
+    const displayData = filteredHistory.length >= 2 ? filteredHistory : state.history;
+
+    UI.lineChart($('#doseChart'), displayData, {
       color: '#22d3ee',
       threshold: 1.0
     });
-    const t0 = new Date(state.history[0]?.t || Date.now());
-    const t1 = new Date(state.history[state.history.length - 1]?.t || Date.now());
+
+    if (displayData.length) {
+      const vals = displayData.map((d) => d.v);
+      const min = Math.min(...vals);
+      const max = Math.max(...vals);
+      const avg = vals.reduce((s, v) => s + v, 0) / vals.length;
+      if ($('#statMin')) $('#statMin').textContent = `${min.toFixed(2)} µSv/h`;
+      if ($('#statAvg')) $('#statAvg').textContent = `${avg.toFixed(2)} µSv/h`;
+      if ($('#statMax')) $('#statMax').textContent = `${max.toFixed(2)} µSv/h`;
+    }
+
+    const t0 = new Date(displayData[0]?.t || Date.now());
+    const t1 = new Date(displayData[displayData.length - 1]?.t || Date.now());
     $('#chartMeta').textContent = `${UI.timeStr(t0)} → ${UI.timeStr(t1)} · chegara 1.0 µSv/h`;
   }
 
   /* ============================== CAMERA ============================= */
+  function takeScreeningSnapshot() {
+    const vid = $('#camVideo');
+    const overlay = $('#camOverlay');
+    if (!vid || vid.videoWidth < 10) return UI.toast('Kamera tasviri mavjud emas', 'warn');
+
+    const snapCanvas = document.createElement('canvas');
+    snapCanvas.width = vid.videoWidth;
+    snapCanvas.height = vid.videoHeight;
+    const ctx = snapCanvas.getContext('2d');
+
+    // Video kadrini chizish
+    ctx.drawImage(vid, 0, 0);
+
+    // Overlay ni ustiga qo'shish
+    if (overlay && overlay.width > 0) {
+      ctx.drawImage(overlay, 0, 0, snapCanvas.width, snapCanvas.height);
+    }
+
+    // Telemetriya shtampi (NMKG · RadSkrin va sana)
+    ctx.fillStyle = 'rgba(2, 6, 23, 0.75)';
+    ctx.fillRect(0, snapCanvas.height - 30, snapCanvas.width, 30);
+    ctx.fillStyle = '#22d3ee';
+    ctx.font = 'bold 12px monospace';
+    ctx.fillText(`RADSKRIN NMKG · ${UI.dateStr()} · ${state.rate} µSv/h`, 10, snapCanvas.height - 10);
+
+    const dataUrl = snapCanvas.toDataURL('image/jpeg', 0.88);
+    state.lastSnapshot = dataUrl;
+
+    if (state.patientId) {
+      const p = state.patients.find((x) => x.id === state.patientId);
+      if (p) {
+        p.thumb = dataUrl;
+        Store.patients.update(p.id, { thumb: dataUrl });
+        renderPatients();
+      }
+    }
+
+    if (window.RadAudio) window.RadAudio.playUiClick();
+    UI.toast(I18n.t('msg.snap.saved'), 'ok');
+  }
+
   async function startCamera() {
     try {
       await engine.start();
@@ -439,6 +679,7 @@
       $('#camState').hidden = false;
       $('#btnCamStart').disabled = true;
       $('#btnCamStop').disabled = false;
+      if ($('#btnCamSnap')) $('#btnCamSnap').disabled = false;
       $('#camHint').textContent = 'Yuzni ichki ramkada ushlang, yuzga yorug\'lik tushsin. Puls uchun 6–12 soniya tinch turish kerak.';
       updateStatus();
       UI.toast('Kamera yoqildi — yuz skriningi boshlandi', 'ok');
@@ -454,6 +695,7 @@
     $('#camState').hidden = true;
     $('#btnCamStart').disabled = false;
     $('#btnCamStop').disabled = true;
+    if ($('#btnCamSnap')) $('#btnCamSnap').disabled = true;
     resetCamMetrics();
     clearIdentity();
     setBanner('none');
@@ -463,8 +705,10 @@
   function resetCamMetrics() {
     ['cPresence', 'cPallor', 'cPulse', 'cStability'].forEach((id) => (document.getElementById(id).textContent = '—'));
     ['barPresence', 'barPallor', 'barPulse', 'barStability'].forEach((id) => UI.progress(document.getElementById(id), 0));
+    if ($('#liveBpmTxt')) $('#liveBpmTxt').textContent = '— bpm';
   }
 
+  let lastPulseBeep = 0;
   function onVisionFrame(f) {
     state.vision = f;
 
@@ -475,6 +719,24 @@
     $('#cPallor').textContent = f.pallor == null ? '—' : `${f.pallor}`;
     $('#cPulse').textContent = f.pulse ? `${f.pulse} bpm` : (f.parsed ? 'puls kutilmoqda...' : '—');
     $('#cStability').textContent = f.found ? `${Math.round(f.stability)}%` : '—';
+
+    // rPPG Jonli fotopletizmogramma to'lqini (EKG)
+    if (f.ppgSamples && f.ppgSamples.length >= 2) {
+      const pCanvas = $('#pulseCanvas');
+      if (pCanvas) {
+        UI.pulseWave(pCanvas, f.ppgSamples, { color: f.pulse ? '#22c55e' : '#38bdf8' });
+      }
+    }
+    const bpmTxt = $('#liveBpmTxt');
+    if (bpmTxt) {
+      bpmTxt.textContent = f.pulse ? `${f.pulse} bpm` : (f.found ? 'o\'lchanmoqda...' : '— bpm');
+    }
+
+    // Biometrik puls tovushi (agar yurak urishi aniqlangan bo'lsa)
+    if (f.pulse && Date.now() - lastPulseBeep > (60000 / f.pulse)) {
+      lastPulseBeep = Date.now();
+      if (window.RadAudio && Math.random() < 0.3) window.RadAudio.playHeartbeat();
+    }
 
     UI.progress($('#barPresence'), f.presence, f.presence > 45 ? '#22c55e' : f.presence > 20 ? '#eab308' : '#ef4444');
     UI.progress($('#barPallor'), f.pallor ?? 0, (f.pallor ?? 0) > 55 ? '#22c55e' : '#eab308');
@@ -1237,10 +1499,23 @@
       if (res.status === 401) { window.Auth.onUnauthorized(); return; }
       if (!res.ok) throw new Error('HTTP ' + res.status);
       const rows = await res.json();
-      renderAdminUsers(rows);
+      state.adminUsers = rows;
+      filterAdminUsers();
     } catch (err) {
       UI.toast("Foydalanuvchilarni yuklab bo'lmadi: " + err.message, 'error');
     }
+  }
+
+  function filterAdminUsers() {
+    let rows = state.adminUsers || [];
+    if (state.adminUserSearch) {
+      const q = state.adminUserSearch;
+      rows = rows.filter((u) =>
+        (u.name && u.name.toLowerCase().includes(q)) ||
+        (u.login && u.login.toLowerCase().includes(q))
+      );
+    }
+    renderAdminUsers(rows);
   }
 
   function renderAdminUsers(rows) {
@@ -1451,6 +1726,7 @@
     renderRefPreview(ref);
 
     renderMonitor(a);
+    if (window.RadAudio) window.RadAudio.playSuccessChime();
     UI.toast(`Tahlil yakunlandi: ${a.healthLoss}% — ${a.risk.label}`, a.referralNeeded ? 'warn' : 'ok', 5000);
 
     // AI xulosasi: kasallik bor/yo'q ro'yxatini ham yangilaymiz
@@ -1512,25 +1788,87 @@
   function printReferral(r) {
     if (!r) return UI.toast('Avval tahlilni o\'tkazing', 'warn');
     const now = UI.dateStr();
+    const docId = 'REG-NMKG-' + (r.id || Date.now().toString(36).slice(-6)).toUpperCase();
     $('#printArea').innerHTML = `
-      <h1>SHIFOKOR YO'LLANMASI — ${C.APP_NAME}</h1>
-      <p><b>${C.ORGANIZATION}</b> · Sana: ${now}</p>
-      <table>
-        <tr><th>Bemor</th><td>${r.patient ? r.patient.name : '—'}</td><th>Tug'ilgan yil</th><td>${r.patient?.year || '—'}</td></tr>
-        <tr><th>Bo'lim / hudud</th><td>${r.patient?.dept || '—'}</td><th>Risk darajasi</th><td>${r.riskLabel} (${r.healthLoss}%)</td></tr>
-        <tr><th>Doza tezligi</th><td>${r.rate} µSv/soat</td><th>Sutkalik doza</th><td>${r.dose} mSv</td></tr>
-        <tr><th>Bugungi foiz</th><td>${Math.round(r.dayPercent)}%</td><th>Yillik foiz</th><td>${Math.round(r.yearPercent)}%</td></tr>
-        <tr><th>Saraton xavfi (LNT)</th><td>${r.cancerRiskPercent}%</td><th>Muddat</th><td><b>${r.deadline}</b></td></tr>
-        <tr><th>Yo'naltirish joyi</th><td colspan="3">${r.place}</td></tr>
-        <tr><th>ICD-10</th><td colspan="3">${r.icd.join('; ')}</td></tr>
-      </table>
-      <p style="margin-top:12px"><b>Tavsiya etilgan tahlillar:</b></p>
-      <ul>${r.tests.map((t) => `<li>${t}</li>`).join('')}</ul>
-      ${r.meds.length ? `<p><b>Dori-darmon (shifokor nazoratida):</b></p><ul>${r.meds.map((m) => `<li>${m}</li>`).join('')}</ul>` : ''}
-      <div class="p-note"><b>Izoh:</b> ${r.note}</div>
-      <div class="p-sign">
-        <div>Shifokor: ________________ / ____________</div>
-        <div>Bemor: ________________ / ____________</div>
+      <div class="cert-wrap">
+        <div class="cert-header">
+          <div class="cert-crest">🇺🇿</div>
+          <div class="cert-gov">O'ZBEKISTON RESPUBLIKASI SOG'LIQNI SAQLASH VAZIRLIGI</div>
+          <div class="cert-subgov">"NAVOIY KON-METALLURGIYA KOMBINATI" AJ · TIBBIY-SANITARIYA QISMI</div>
+          <div class="cert-subgov">Radiatsion monitoring va kasbiy salomatlik markazi</div>
+        </div>
+
+        <div class="cert-title-box">
+          <h2 class="cert-title">RADIATSION SKRINING VA SHIFOKOR YO'LLANMASI (086/R-SHAKL)</h2>
+          <div class="cert-doc-id">Hujjat raqami: ${docId} · Rasmiylashtirilgan sana: ${now}</div>
+        </div>
+
+        <table class="cert-table">
+          <tr>
+            <th>Xodim / Bemor F.I.Sh.:</th>
+            <td><b>${esc(r.patient ? r.patient.name : (r.patientName || 'Noma\'lum xodim'))}</b></td>
+            <th>Tug'ilgan yili / Telefon:</th>
+            <td>${r.patient?.year ? r.patient.year + ' yil' : '—'} · ${r.patient?.phone ? esc(r.patient.phone) : '—'}</td>
+          </tr>
+          <tr>
+            <th>Ish joyi / Sex:</th>
+            <td>${esc(r.patient?.dept || 'NMKG Gidrometallurgiya Zavodi')}</td>
+            <th>Klinik xavf darajasi:</th>
+            <td><b>${r.riskLabel || 'Xavfsiz'}</b> (Sog'liq yo'qotish: <b>${r.healthLoss}%</b>)</td>
+          </tr>
+          <tr>
+            <th>Joriy doza tezligi:</th>
+            <td><b>${r.rate} µSv/soat</b> (fondan ${(r.rate / 0.16).toFixed(1)} baravar)</td>
+            <th>Hisoblangan kunlik doza:</th>
+            <td><b>${r.dose} mSv</b> (kunlik me'yorda ${Math.round(r.dayPercent)}%)</td>
+          </tr>
+          <tr>
+            <th>Yillik prognoz yuklama:</th>
+            <td><b>${Math.round(r.yearPercent)}%</b> (1 mSv aholi limitidan)</td>
+            <th>LNT saraton qo'shimcha xavfi:</th>
+            <td><b>${r.cancerRiskPercent}%</b></td>
+          </tr>
+          <tr>
+            <th>Yo'llanma muddati:</th>
+            <td><b>${r.deadline}</b></td>
+            <th>Yo'naltirilgan muassasa:</th>
+            <td><b>${r.place}</b></td>
+          </tr>
+          <tr>
+            <th>ICD-10 tashxis kodlari:</th>
+            <td colspan="3">${(r.icd || []).join('; ')}</td>
+          </tr>
+        </table>
+
+        <div class="cert-sec-title">Tavsiya etilgan klinik-laborator tahlillar:</div>
+        <ul class="cert-list">
+          ${(r.tests || []).map((t) => `<li>${esc(t)}</li>`).join('')}
+        </ul>
+
+        ${r.meds && r.meds.length ? `
+          <div class="cert-sec-title">Tibbiy ko'rsatmalar va dori vositalari (shifokor ko'rigi asosida):</div>
+          <ul class="cert-list">
+            ${r.meds.map((m) => `<li>${esc(m)}</li>`).join('')}
+          </ul>
+        ` : ''}
+
+        <div class="cert-note-box">
+          <b>Ekspert xulosasi va profilaktik izoh:</b> ${esc(r.note || 'Xodimda doza va biometrik parametrlar monitoringi o\'tkazildi. Belgilangan muddatda ixtisoslashtirilgan ko\'rikdan o\'tish shart.')}
+        </div>
+
+        <div class="cert-footer-row">
+          <div class="cert-sign-col">
+            <div><b>Tekshiruvchi mutaxassis / Shifokor:</b> _________________________ (imzo)</div>
+            <div><b>Xodim / Bemor tanishdi:</b> _________________________ (imzo)</div>
+            <div>Sana va vaqt: ${now}</div>
+          </div>
+          <div class="cert-stamp">
+            <div>O'ZBEKISTON RESPUBLIKASI</div>
+            <div style="font-size:13pt;margin:2px 0;">★</div>
+            <div>NMKG TIBBIY-SANITARIYA QISMI</div>
+            <div style="font-size:6.5pt;margin-top:2px;">TASDIQLANDI</div>
+          </div>
+        </div>
       </div>`;
     window.print();
   }
@@ -1557,7 +1895,31 @@
   }
 
   function renderPatients() {
-    UI.renderRows($('#patientRows'), state.patients, [
+    let list = state.patients.slice();
+
+    // 1. Qidiruv filtri
+    if (state.patientSearch) {
+      const q = state.patientSearch;
+      list = list.filter((p) =>
+        (p.name && p.name.toLowerCase().includes(q)) ||
+        (p.dept && p.dept.toLowerCase().includes(q)) ||
+        (p.phone && p.phone.includes(q))
+      );
+    }
+
+    // 2. Risk darajasi bo'yicha filtr
+    if (state.patientFilter === 'safe') {
+      list = list.filter((p) => p.riskLabel === 'Xavfsiz' || !p.riskLabel);
+    } else if (state.patientFilter === 'watch') {
+      list = list.filter((p) => p.riskLabel === 'Past xavf' || p.riskLabel === 'O\'rta xavf');
+    } else if (state.patientFilter === 'risk') {
+      list = list.filter((p) => p.riskLabel === 'Yuqori xavf' || p.riskLabel === 'Juda yuqori');
+    }
+
+    const countEl = $('#patientTotalCount');
+    if (countEl) countEl.textContent = `Jami: ${list.length} ta xodim / bemor`;
+
+    UI.renderRows($('#patientRows'), list, [
       { render: (p) => `<div class="person">${p.thumb ? `<img class="thumb" src="${p.thumb}" alt="" />` : '<div class="thumb none">👤</div>'}<div><b>${esc(p.name)}</b><br/><span class="muted">${p.lastSeen ? 'oxirgi: ' + UI.dateStr(p.lastSeen) : UI.dateStr(p.createdAt)}</span></div></div>` },
       { render: (p) => esc(p.dept) },
       { render: (p) => p.year },
@@ -1571,7 +1933,7 @@
           <button class="btn btn-ghost btn-sm" data-hist="${p.id}">Tarix</button>
           <button class="btn btn-ghost btn-sm" data-del-p="${p.id}">O'chirish</button>
         </div>` }
-    ], 9, "Bemorlar yo'q — 'Yangi bemor ro'yxatga olish' tugmasini bosing (camera sahifasi)");
+    ], 9, "Bemorlar topilmadi");
 
     $('#patientRows').onclick = async (e) => {
       const pick = e.target.dataset.pick;
@@ -1639,17 +2001,26 @@
 
   function renderQueue() {
     const box = $('#queueList');
-    if (!state.referrals.length) {
-      box.innerHTML = `<div class="empty" style="text-align:center;color:var(--muted);padding:34px">Navbat bo'sh. "Camera skriningi" sahifasida tahlil o'tkazib, yo'llanma yarating.</div>`;
+    let list = state.referrals.slice();
+
+    // Shoshilinch yoki rejali filtr
+    if (state.queueFilter === 'urgent') {
+      list = list.filter((r) => r.deadline === 'Darhol' || r.deadline === '4 soat ichida' || r.deadline === '24 soat ichida');
+    } else if (state.queueFilter === 'routine') {
+      list = list.filter((r) => r.deadline !== 'Darhol' && r.deadline !== '4 soat ichida' && r.deadline !== '24 soat ichida');
+    }
+
+    if (!list.length) {
+      box.innerHTML = `<div class="empty" style="text-align:center;color:var(--muted);padding:34px">Navbatda yo'llanmalar mavjud emas. "Camera skriningi" sahifasida tahlil o'tkazib, yo'llanma yarating.</div>`;
       return;
     }
-    box.innerHTML = state.referrals.map((r) => {
+    box.innerHTML = list.map((r) => {
       const st = STATUSES.find((s) => s[0] === r.status) || STATUSES[0];
       return `
       <div class="q-item" style="--b:${r.riskColor || '#94a3b8'}">
         <div class="q-head">
           <div>
-            <h4>${r.patientName || r.patient?.name || 'Nomalum bemor'} ${UI.badge(r.riskLabel, r.riskColor || '#94a3b8')}</h4>
+            <h4>${r.patientName || r.patient?.name || 'Noma\'lum bemor'} ${UI.badge(r.riskLabel, r.riskColor || '#94a3b8')}</h4>
             <div class="q-meta">${UI.dateStr(r.createdAt)} · ${r.place} · muddat: <b>${r.deadline}</b></div>
           </div>
           <span class="status ${st[1] ? st[2] : ''}">${st[1]}</span>

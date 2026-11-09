@@ -52,6 +52,7 @@ function ttsSynth(voice, text) {
 const PORT = process.argv.includes('--port')
   ? Number(process.argv[process.argv.indexOf('--port') + 1])
   : Number(process.env.PORT || 3000);
+const HOST = process.env.HOST || '0.0.0.0';
 
 /* --------------------------- Sun'iy ong (LLM) ----------------------------- */
 // Google Gemini — kalit faqat serverda (.env / GEMINI_API_KEY), brauzerga chiqmaydi.
@@ -550,10 +551,10 @@ const server = http.createServer(async (req, res) => {
   }
 });
 
-server.listen(PORT, () => {
+server.listen(PORT, HOST, () => {
   console.log('------------------------------------------------------------');
   console.log('  RadSkrin — NMKG radiatsion nazorat tizimi');
-  console.log(`  Server:  http://localhost:${PORT}`);
+  console.log(`  Server:  http://${HOST}:${PORT}`);
   console.log(`  Ma'lumotlar: ${DATA_DIR}`);
   console.log('  Toxtatish: Ctrl+C');
   console.log('------------------------------------------------------------');

@@ -1,0 +1,83 @@
+RadSkrin taqdimoti — ovozli matnlar (slayd tartibida), NMKG
+============================================================
+
+01-slayd:
+RadSkrin — NMKG radiatsiya skriningi. Kamera, sun'iy intellekt va qoidalar dvijoki bilan bir daqiqada aniqlash tizim.
+
+02-slayd:
+Taqdimot to'rt qismdan iborat: muammo va yechim, Asosiy imkoniyatlar, Ilova ekranlari, Texnologiya va reja.
+
+03-slayd:
+Muammo shundaki, radiatsiya xavfi ko'rinmaydi. Belgilar yashirin va kech seziladi, kasb xavfi yuqori. Ichimlik yoki alkogol esa darhol aniqlanmaydi: xavfli mashina boshqarish yoki og'ir ish oldidan tekshiruv yo'q.
+
+04-slayd:
+Nurlangan va nurlanmagan odam farqini tizim bir daqiqada ko'rsatadi. Nurlanganda doza tezligi yuqori, teri qizarishi, charchoq va tez pulslanish kuzatiladi, klinik xulosa kasallikni bor deydi. Nurlanmagan odamda fon normal, belgilar yo'q va xulosa xavfsiz.
+
+07-slayd:
+Bu jonli isbot. Kamera shu zahoti ishlaydi: tana qutisi va o'n yetti nuqta real vaqtda chiziladi, kadr chastotasi jonli ko'rsatiladi. Hech qanday yozuv yo'q — deraza yopilganda hamma narsa to'xtaydi.
+
+08-slayd:
+Javob — bit tizim, besh qatlamli yechim: kamera orqali yuz va belgilarni olish, o'n uchta kasallik bo'yicha sun'iy intellekt xulosasi, alkogol moduli, ovozli suhbat va nazorat paneli.
+
+09-slayd:
+Ishlash tartibi oddiy. Foydalanuvchi kamera oldiga o'tiradi, tizim yuz, teri va nafas belgilarini tahlil qiladi va bir daqiqada xulosa tayyorlaydi.
+
+10-slayd:
+Ma'lumot aniq ketma-ketlikda yuradi: kirish — bemor va kamera, keyin tahlil, so'ngra xulosa va amalga o'tish: ogohlantirish, davolash yoki qo'shimcha ko'rik.
+
+11-slayd:
+Kamera o'ttiz kadrda ishlaydi. Yuz rangi, ko'z qovoqlari, nafas olish chastotasi va teri holati real vaqtda o'lchanadi.
+
+12-slayd:
+Sun'iy intellekt o'n uchta kasallik bo'yicha javob beradi: bor, shubha yoki yo'q. Har bir natija foiz va ishonch darajasi bilan ko'rsatiladi.
+
+13-slayd:
+Alkogol moduli ichimlik turi, miqdori va o'tgan vaqtni oladi. Ball, qon alkogoli va xavf darajasi hisoblanadi. Og'ir holatda shifokor yoki militsiya yordami tavsiya etiladi.
+
+14-slayd:
+Foydalanuvchi ovozli savol beradi, tizim matnda va ovozda javob beradi. Suhbat tabiiy, to'liq o'zbek tilida.
+
+15-slayd:
+Nazorat panelida barcha bemorlar, doza ko'rsatkichlari va xavf darajalari bitta ekranda to'planadi.
+
+16-slayd:
+Bir ekranda yuz, belgilar va tahlil — har bir qadam ko'rinib turadi, natija shu yerda shakllanadi.
+
+17-slayd:
+Klinik xulosa qaysi kasallik necha foiz ekanligini, tavsiyalarni va keyingi qadamlarni aniq yozib beradi.
+
+18-slayd:
+Alkogol moduli beshta signal bo'yicha ball hisoblaydi: og'irlik, reaksiya, ovoz, fiziologiya va o'zini boshqarish. Natija shkalada ko'rsatiladi.
+
+20-slayd:
+Tizim Node.js asosida, brauzerli interfeys va server orqali ishlaydi. Sun'iy intellekt moduli alohida xizmat sifatida qo'shiladi.
+
+21-slayd:
+Raqamlar real tizimdan: o'n uchta kasallik, beshta signal, yuz yigirma kadr va bir daqiqalik to'liq tahlil.
+
+22-slayd:
+Oddiy ko'rik bir necha daqiqa va ko'z bilan baholanadi. RadSkrin esa bir daqiqada, ob'ektiv foiz bilan javob beradi.
+
+23-slayd:
+Ma'lumotlar lokal saqlanadi, ruxsatsiz kirish yo'q. Tizim faqat tibbiy yordam uchun mo'ljallangan.
+
+24-slayd:
+Byudjet va uskunalar aniq ko'rsatilgan. Bir NMKG punkti uchun umumiy investitsiya sakson besh million so'm, ya'ni olti ming yetti yuz ellik dollar. Bunga GPU server, to'rtta IR kamera, monitor, mikrofon, dasturiy litsenziya, o'rnatish va yillik texnik xizmat kiradi. Bir skrining narxi o'ttiz besh sentdan ham kam.
+
+25-slayd:
+Reja aniq: birinchi olti oyda pilot loyiha, so'ngra rasmiylashtirish va boshqa tibbiy tashkilotlarga kengaytirish.
+
+26-slayd:
+Xulosa: RadSkrin — radiatsiya xavfini bir daqiqada aniqlaydigan, o'zbek tilida to'liq ishlaydigan tayyor tizim.
+
+27-slayd:
+E'tiboringiz uchun rahmat. Savollaringiz bo'lsa, tayyor javob beramiz.
+
+05-slayd (video narratsiyasi):
+Nurlangan odamda doza tezligi yuqori: teri qizarishi, charchoq va tez pulslanish kuzatiladi, klinik xulosa kasallikni bor deydi. Nurlanmagan odamda fon normal, belgilar yo'q va xulosa xavfsiz. RadSkrin bu farqni bir daqiqada ko'rsatadi.
+
+06-slayd (video narratsiyasi):
+Kamera ishlatilmadi: bu sun'iy uch o'lchamli odam modeli. Bir xil tizim tana qutisini va o'n yetti nuqtani model ustida real vaqtda chizadi — yelka, tirsak, son va tizza. Demak, RadSkrin har qanday odam tasvirini, hatto raqamli modelni ham aniqlaydi.
+
+19-slayd (demo video narratsiyasi):
+Tizim monitoringda jonli kuzatuv bilan ishlaydi. Foydalanuvchi alomatlarini belgilaydi va tahlil boshlanadi. Ovozli savolga javob vozda qaytariladi. Alkogol moduli esa ball hisoblab, xavf darajasini ko'rsatadi.

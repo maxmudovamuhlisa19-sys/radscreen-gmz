@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>RadSkrin — NMKG radiatsion nazorat va sog'lik skriningi</title>
-  <meta name="description" content="Radiatsiya dozasi, camera vision skriningi, sog'liq yo'qotish foizi va shifokor yo'llanmasi — avtomatik tizim." />
+  <title>RadSkrin — NMKG radiatsion nazorat va tibbiy skrining tizimi</title>
+  <meta name="description" content="Radiatsiya dozasi, camera vision skriningi, biometrik Face ID, sog'liq yo'qotish foizi va shifokor yo'llanmasi — avtomatik intellektual tizim." />
   <link rel="stylesheet" href="css/styles.css" />
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>☢️</text></svg>" />
 </head>
@@ -15,7 +15,7 @@
   <div class="auth-card">
     <div class="auth-logo">☢</div>
     <h2>RadSkrin</h2>
-    <p class="muted" data-i18n="auth.login.desc">NMKG · radiatsion nazorat tizimi</p>
+    <p class="muted" data-i18n="auth.login.desc">NMKG · radiatsion nazorat va tibbiy skrining tizimi</p>
 
     <div class="auth-tabs">
       <button type="button" class="auth-tab active" data-auth="login" data-i18n="auth.login">🔑 Kirish</button>
@@ -44,8 +44,8 @@
         <div class="reg-cell">
           <label data-i18n="auth.role">Rol</label>
           <select name="role">
-            <option value="operator" data-i18n="auth.role.operator">Ishchi</option>
-            <option value="doctor" data-i18n="auth.role.doctor">Shifokor</option>
+            <option value="operator" data-i18n="auth.role.operator">Ishchi / Operator</option>
+            <option value="doctor" data-i18n="auth.role.doctor">Shifokor / Radiolog</option>
           </select>
         </div>
         <div class="reg-cell">
@@ -56,7 +56,7 @@
         </div>
       </div>
 
-      <!-- ===== Yuzni ro'yxatga olish (Face ID) — eng pastda ===== -->
+      <!-- Yuzni ro'yxatga olish (Face ID) -->
       <div class="reg-face" id="regFace">
         <label data-i18n="auth.face">Yuz orqali identifikatsiya (Face ID) — ixtiyoriy</label>
         <div class="reg-face-box" id="regFaceBox">
@@ -82,26 +82,47 @@
     <div class="logo">☢</div>
     <div class="brand-text">
       <h1>RadSkrin</h1>
-      <span id="orgName">NMKG · radiatsion nazorat tizimi</span>
+      <span id="orgName" data-i18n="top.org">NMKG · Gidrometallurgiya Zavodi</span>
     </div>
   </div>
 
   <nav class="tabs" id="tabs">
     <button class="tab active" data-tab="monitor" data-i18n="tab.monitor">📊 Monitoring</button>
     <button class="tab" data-tab="vision" data-i18n="tab.vision">📷 Camera skriningi</button>
-    <button class="tab" data-tab="patients" data-i18n="tab.patients">🧑‍🤝‍🧑 Bemorlar</button>
-    <button class="tab" data-tab="queue"><span data-i18n="tab.queue">🏥 Shifokor navbati</span> <span class="pill" id="queueCount">0</span></button>
+    <button class="tab" data-tab="patients">🧑‍🤝‍🧑 <span data-i18n="tab.patients">Bemorlar</span></button>
+    <button class="tab" data-tab="queue">🏥 <span data-i18n="tab.queue">Shifokor navbati</span> <span class="pill" id="queueCount">0</span></button>
     <button class="tab" data-tab="admin" style="display:none" data-i18n="tab.admin">🛠 Admin</button>
     <button class="tab" data-tab="method" data-i18n="tab.method">📐 Metodika</button>
   </nav>
 
   <div class="topbar-right">
+    <!-- Jonli xavf indikatori -->
+    <div class="threat-pill safe" id="threatPill" title="Radiatsion xavf darajasi">
+      <span class="tp-dot"></span>
+      <b id="threatPillRate">0.16 µSv/h</b>
+      <span id="threatPillLabel">Fon normal</span>
+    </div>
+
+    <!-- Tovush tugmasi -->
+    <button class="btn-icon" id="btnAudioToggle" title="Ovoz (Geiger / Siren)">
+      <span class="icon-sound" id="iconSound">🔊</span>
+    </button>
+
+    <!-- Til tanlash -->
+    <div class="lang-pills" id="langPills">
+      <button class="lp-btn active" data-set-lang="uz">UZ</button>
+      <button class="lp-btn" data-set-lang="ru">RU</button>
+      <button class="lp-btn" data-set-lang="en">EN</button>
+    </div>
+
     <div class="conn" id="apiStatus" title="Server holati"><span class="dot"></span> <span data-i18n="top.checking">tekshirilmoqda...</span></div>
+
     <div class="user-badge" id="userBadge" hidden>
       <span class="ub-avatar">👤</span>
       <div class="ub-text"><b id="ubName">—</b><i id="ubRole">—</i></div>
       <button class="btn btn-ghost btn-sm" id="btnLogout" title="Tizimdan chiqish" data-i18n="top.logout">Chiqish</button>
     </div>
+
     <div class="clock" id="clock">--:--:--</div>
   </div>
 </header>
@@ -111,12 +132,25 @@
 <!-- ============================== MONITORING ============================== -->
 <section class="page active" id="page-monitor">
 
+  <!-- Favqulodda ogohlantirish banneri -->
+  <div class="alert-banner" id="alertBanner" hidden>
+    <div class="ab-icon">☣️</div>
+    <div class="ab-text">
+      <h3 id="alertBannerTitle" data-i18n="alert.title">⚠️ DIQQAT: RADIATSIYA ME'YORDAN YUQORI!</h3>
+      <p id="alertBannerText" data-i18n="alert.desc">Hududda nurlanish foni oshgan. Xodimlar shaxsiy himoya vositalarini taqsin va zaxira zonasiga o'tsin.</p>
+    </div>
+    <div class="ab-actions">
+      <button class="btn btn-ghost btn-sm" id="btnMuteAlert" data-i18n="alert.btn.mute">🔕 Signalni o'chirish</button>
+      <button class="btn btn-warn btn-sm" id="btnAlertReferral" data-i18n="alert.btn.ref">🏥 Shifokorga yo'llanma</button>
+    </div>
+  </div>
+
   <div class="grid grid-a">
     <!-- Dozometr -->
     <div class="card gauge-card">
       <div class="card-head">
         <h2>Joriy doza tezligi</h2>
-        <span class="live">● jonli</span>
+        <span class="live">● jonli telemetry</span>
       </div>
 
       <div class="gauge-wrap" id="gaugeWrap"></div>
@@ -153,9 +187,9 @@
 
         <div class="sensor-actions">
           <button class="btn btn-ghost" id="btnSerial">🔌 Geiger ulash (Web Serial)</button>
-          <button class="btn btn-ghost" id="btnReset">↺ Fon</button>
+          <button class="btn btn-ghost" id="btnReset">↺ Fon darajasiga qaytish</button>
         </div>
-        <p class="hint" id="sensorHint">Simulyatsiya rejimida — haqiqiy dozimetr ulanmagan.</p>
+        <p class="hint" id="sensorHint">Simulyatsiya rejimida — real vaqtda Geiger-Müller audio chertishlari bilan.</p>
       </div>
     </div>
 
@@ -191,10 +225,23 @@
       <!-- Grafik -->
       <div class="card">
         <div class="card-head">
-          <h2>Doza tarixi (24 soat)</h2>
-          <span class="muted" id="chartMeta">har 15 daqiqada</span>
+          <h2>Doza tarixi</h2>
+          <div class="row gap">
+            <div class="seg" id="chartRangeSeg">
+              <button class="seg-btn active" data-range="24">24s</button>
+              <button class="seg-btn" data-range="6">6s</button>
+              <button class="seg-btn" data-range="1">1s</button>
+            </div>
+            <span class="muted" id="chartMeta">har 15 daqiqada</span>
+          </div>
         </div>
-        <canvas id="doseChart" class="chart" height="230"></canvas>
+        <canvas id="doseChart" class="chart" height="220"></canvas>
+        <div class="chart-stats-strip" id="chartStats">
+          <div class="cs-item"><span>Min:</span> <b id="statMin">0.12 µSv/h</b></div>
+          <div class="cs-item"><span>O'rtacha:</span> <b id="statAvg">0.16 µSv/h</b></div>
+          <div class="cs-item"><span>Maks:</span> <b id="statMax">0.24 µSv/h</b></div>
+          <div class="cs-item"><span>Limit:</span> <b id="statLimit">1.00 µSv/h</b></div>
+        </div>
       </div>
     </div>
   </div>
@@ -202,7 +249,7 @@
   <!-- Yakuniy xulosa + vizual ball -->
   <div class="grid grid-b">
     <div class="card">
-      <div class="card-head"><h2>Umumiy xulosa</h2></div>
+      <div class="card-head"><h2>Umumiy xulosa va holat</h2></div>
       <div class="verdict" id="verdictBox">
         <div class="verdict-num"><span id="verdictPct">0</span><small>%</small></div>
         <div class="verdict-txt">
@@ -211,7 +258,7 @@
         </div>
       </div>
       <ul class="advice" id="adviceList"></ul>
-      <div class="row gap">
+      <div class="row gap mt">
         <button class="btn btn-primary" id="btnGoVision">📷 Camera skriningiga o'tish</button>
         <button class="btn btn-warn" id="btnQuickReferral" disabled>🏥 Shifokor yo'llanmasi</button>
       </div>
@@ -229,7 +276,7 @@
         <label>Vizual skrining bali <b id="visionScoreTxt">—</b></label>
         <div class="bar bar-lg"><i id="barVision"></i></div>
       </div>
-      <p class="hint">Kamera skriningi — ko'rinadigan belgilar (teri rangi, puls, harakat) bo'yicha dasturiy baholash. U IONIZALOVCHI radiatsiyani bevosita o'lchamaydi: aniq doza dozimetrdan olinadi.</p>
+      <p class="hint">Kamera skriningi — teri rangi, puls va mimika orqali tezkor tibbiy baholash. Aniq fizik ionizatsiya dozasi dozimetr orqali aniqlanadi.</p>
     </div>
   </div>
 </section>
@@ -240,7 +287,7 @@
     <div class="card cam-card">
       <div class="card-head">
         <h2>Yuz skriningi (camera vision)</h2>
-        <span class="live" id="camState" hidden>● jonli</span>
+        <span class="live" id="camState" hidden>● jonli video</span>
       </div>
 
       <div class="cam-frame" id="camFrame">
@@ -262,6 +309,7 @@
       <div class="row gap">
         <button class="btn btn-primary" id="btnCamStart">▶ Kamerani yoqish</button>
         <button class="btn btn-ghost" id="btnCamStop" disabled>■ To'xtatish</button>
+        <button class="btn btn-ghost" id="btnCamSnap" disabled title="Skrining holati suratini saqlash">📸 Skrining surati</button>
         <label class="btn btn-ghost file-btn">
           🖼 Rasm yuklash
           <input type="file" id="imgInput" accept="image/*" hidden />
@@ -274,9 +322,19 @@
         <div class="cam-metric"><span>Puls rPPG</span><b id="cPulse">—</b><div class="bar sm"><i id="barPulse"></i></div></div>
         <div class="cam-metric"><span>Barqarorlik</span><b id="cStability">—</b><div class="bar sm"><i id="barStability"></i></div></div>
       </div>
+
+      <!-- rPPG Jonli puls to'lqini (EKG) -->
+      <div class="pulse-wave-box" id="pulseWaveBox">
+        <div class="pwb-head">
+          <span>❤️ Jonli rPPG Puls To'lqini (fotopletizmogramma)</span>
+          <b id="liveBpmTxt">— bpm</b>
+        </div>
+        <canvas id="pulseCanvas" height="60"></canvas>
+      </div>
+
       <p class="hint" id="camHint">Yuzni ichki ramkada ushlang: aniqlanganida ramka ko'k bo'ladi. Puls 6–12 soniyadan keyin hisoblanadi.</p>
 
-      <!-- ==================== SHAXSNI TANISH (FACE ID) ==================== -->
+      <!-- Shaxsni tanish (Face ID) -->
       <div class="faceid" id="faceIdPanel">
         <div class="faceid-head">
           <h3>🪪 Shaxsni tanish (Face ID)</h3>
@@ -292,7 +350,7 @@
           <button class="btn btn-ghost" id="btnIdentClear">✕ Tanishni tozalash</button>
         </div>
 
-        <p class="hint">Yuz registratsiyada ro'yxatga olinganda kamera uni avtomatik tanib, ism va rol chiqaradi. O'xshashlik past bo'lsa — operator tasdiqlaydi.</p>
+        <p class="hint">Yuz registratsiyada ro'yxatga olinganda kamera uni avtomatik tanib, ism va rol chiqaradi.</p>
       </div>
     </div>
 
@@ -339,15 +397,15 @@
 
         <div class="row gap mt">
           <button class="btn btn-warn" id="btnSaveReferral">🏥 Yo'llanmani navbatga qo'shish</button>
-          <button class="btn btn-ghost" id="btnPrintReferral">🖨 Chop etish</button>
+          <button class="btn btn-ghost" id="btnPrintReferral">🖨 Chop etish (PDF)</button>
         </div>
       </div>
     </div>
 
-    <!-- ==================== ALKOHOL ANIQLASH (5 signal) ==================== -->
+    <!-- Alkogol aniqlash (5 signal) -->
     <div class="card" id="alcCard">
       <div class="card-head">
-        <h2>Alkogol aniqlash — ko'p signalli tahlil</h2>
+        <h2>Alkogol aniqlash — ko'p signalli skrining</h2>
         <div class="row gap">
           <button class="btn btn-ghost btn-sm" id="btnAlcSway">duranglik (kamera)</button>
           <button class="btn btn-ghost btn-sm" id="btnAlcVoice">ovoz</button>
@@ -356,7 +414,7 @@
       </div>
 
       <div class="alc-grid">
-        <!-- signallar -->
+        <!-- Signallar -->
         <div class="alc-signals" id="alcSignals">
           <div class="alc-sig" data-sig="sway">
             <span class="nm">Duranglik (bosh silkinishi)</span>
@@ -385,16 +443,16 @@
           </div>
         </div>
 
-        <!-- reaktsiya testi -->
+        <!-- Reaktsiya testi -->
         <div class="alc-rt" id="alcRt" hidden>
-          <div class="sub-title">Reaktsiya testi — ro'molcha paydo bo'lganda BOSING</div>
+          <div class="sub-title">Reaktsiya testi — yashil doira paydo bo'lganda BOSING</div>
           <div class="rt-target wait" id="rtTarget">…</div>
           <div class="muted" id="rtStat">6 ta sinov</div>
         </div>
 
-        <!-- savolnoma -->
+        <!-- Savolnoma -->
         <div class="alc-form">
-          <div class="sub-title">Savolnoma — nechta ichdingiz?</div>
+          <div class="sub-title">Savolnoma — qabul qilingan ichimliklar</div>
           <div class="alc-drinks" id="alcDrinks"></div>
 
           <div class="alc-row">
@@ -406,14 +464,14 @@
             <input type="number" id="alcWeight" min="30" max="250" step="1" value="75" />
           </div>
           <div class="alc-row">
-            <label>Pol</label>
+            <label>Jins</label>
             <select id="alcSex">
               <option value="male">Erkak</option>
               <option value="female">Ayol</option>
             </select>
           </div>
           <div class="alc-row">
-            <label>Shubhali xatti-harakat kuzatildimi? (urish, bezovtalik, noo'zgalik)</label>
+            <label>Shubhali xatti-harakat kuzatildimi?</label>
             <select id="alcBehaviour">
               <option value="no">Yo'q</option>
               <option value="yes">Ha</option>
@@ -421,7 +479,7 @@
           </div>
         </div>
 
-        <!-- natija -->
+        <!-- Natija -->
         <div class="alc-result" id="alcResult">
           <div class="alc-gauge">
             <svg viewBox="0 0 120 68" class="alc-svg">
@@ -437,9 +495,7 @@
       </div>
 
       <div class="ai-disclaimer">
-        ⚕ Bu modul ko'p signalli skrining (duranglik + reaktsiya + ovoz + yuz + savolnoma).
-        U <b>tashxis emas</b> — yakuniy hukm shifokor yoki ekspertiza tomonidan beriladi.
-        Xavfli holatda 103 (shoshilinch yordam) yoki IIBga murojaat qiling.
+        ⚕ Bu modul ko'p signalli skrining. U rasmiy tibbiy-ekspertiza tashxisi emas.
       </div>
     </div>
   </div>
@@ -467,7 +523,7 @@
 
     <div class="ai-groups" id="aiGroups" hidden></div>
 
-    <!-- ============ AI SUHBAT (ovozli muloqot) ============ -->
+    <!-- AI suhbat (ovozli muloqot) -->
     <div class="ai-chat" id="aiChat">
       <div class="ai-chat-head">
         <b>💬 AI bilan suhbat</b>
@@ -503,18 +559,47 @@
 <section class="page" id="page-patients">
   <div class="card">
     <div class="card-head">
-      <h2>Bemorlar ro'yxati</h2>
+      <div>
+        <h2 data-i18n="page.patients">Bemorlar va xodimlar ro'yxati</h2>
+        <span class="muted" id="patientTotalCount">Jami: 0 ta xodim</span>
+      </div>
       <div class="row gap">
-        <button class="btn btn-ghost" id="btnExportPatients">⬇ CSV eksport</button>
-        <button class="btn btn-primary" id="btnAddPatient">+ Bemor qo'shish</button>
+        <button class="btn btn-ghost" id="btnExportPatients" data-i18n="btn.export.csv">⬇ CSV eksport</button>
+        <button class="btn btn-primary" id="btnAddPatient" data-i18n="btn.add.patient">+ Bemor qo'shish</button>
       </div>
     </div>
-    <table class="table">
-      <thead>
-        <tr><th data-i18n="th.patient">Bemor</th><th data-i18n="th.dept">Bo'lim / hudud</th><th data-i18n="th.year">Tug'ilgan yil</th><th data-i18n="th.phone">Telefon</th><th data-i18n="th.visits">Tashriflar</th><th data-i18n="th.dose">Jami doza</th><th data-i18n="th.risk">Oxirgi risk</th><th>Face ID</th><th></th></tr>
-      </thead>
-      <tbody id="patientRows"></tbody>
-    </table>
+
+    <!-- Qidiruv va filtr bar -->
+    <div class="table-toolbar">
+      <div class="search-box">
+        <input type="search" id="patientSearch" placeholder="🔍 F.I.Sh., bo'lim yoki telefon bo'yicha qidiruv..." />
+      </div>
+      <div class="filter-pills" id="patientFilterPills">
+        <button class="filter-pill active" data-pfilter="all">Barchasi</button>
+        <button class="filter-pill" data-pfilter="safe">Xavfsiz</button>
+        <button class="filter-pill" data-pfilter="watch">Kuzatuv</button>
+        <button class="filter-pill" data-pfilter="risk">Xavfli</button>
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <table class="table">
+        <thead>
+          <tr>
+            <th data-i18n="th.patient">Bemor</th>
+            <th data-i18n="th.dept">Bo'lim / hudud</th>
+            <th data-i18n="th.year">Tug'ilgan yil</th>
+            <th data-i18n="th.phone">Telefon</th>
+            <th data-i18n="th.visits">Tashriflar</th>
+            <th data-i18n="th.dose">Jami doza</th>
+            <th data-i18n="th.risk">Oxirgi risk</th>
+            <th>Face ID</th>
+            <th>Amallar</th>
+          </tr>
+        </thead>
+        <tbody id="patientRows"></tbody>
+      </table>
+    </div>
   </div>
 </section>
 
@@ -522,9 +607,17 @@
 <section class="page" id="page-queue">
   <div class="card">
     <div class="card-head">
-      <h2>Shifokor navbati — yo'llanmalar</h2>
+      <div>
+        <h2 data-i18n="page.queue">Shifokor navbati — yo'llanmalar</h2>
+        <span class="muted" id="queueSubhead">Kutilayotgan tibbiy ko'riklar</span>
+      </div>
       <div class="row gap">
-        <button class="btn btn-ghost" id="btnExportRefs">⬇ CSV eksport</button>
+        <div class="filter-pills" id="queueFilterPills">
+          <button class="filter-pill active" data-qfilter="all">Barchasi</button>
+          <button class="filter-pill" data-qfilter="urgent">Shoshilinch</button>
+          <button class="filter-pill" data-qfilter="routine">Rejali</button>
+        </div>
+        <button class="btn btn-ghost" id="btnExportRefs" data-i18n="btn.export.csv">⬇ CSV eksport</button>
         <button class="btn btn-ghost" id="btnClearQueue">🧹 Navbatni tozalash</button>
       </div>
     </div>
@@ -536,23 +629,43 @@
 <section class="page" id="page-admin">
   <div class="card">
     <div class="card-head">
-      <h2>🛠 Admin panel — foydalanuvchilar</h2>
+      <h2>🛠 Admin panel — foydalanuvchilar va ma'lumotlar ombori</h2>
       <div class="row gap">
-        <span class="muted" id="adminCount">—</span>
-        <button class="btn btn-ghost" id="btnAdminRefresh">⟳ Yangilash</button>
+        <button class="btn btn-ghost btn-sm" id="btnBackupDb">📥 Zaxira nusxa (JSON)</button>
+        <label class="btn btn-ghost btn-sm file-btn">
+          📤 Tiklash (JSON)
+          <input type="file" id="inputRestoreDb" accept=".json" hidden />
+        </label>
+        <button class="btn btn-ghost btn-sm" id="btnAdminRefresh" data-i18n="btn.refresh">⟳ Yangilash</button>
       </div>
     </div>
-    <table class="table">
-      <thead>
-        <tr>
-          <th>#</th><th data-i18n="th.patient">F.I.Sh.</th><th data-i18n="th.login">Login</th>
-          <th data-i18n="th.nation">Millat</th><th data-i18n="th.role">Rol</th>
-          <th>Face ID</th><th data-i18n="th.created">Ro'yxatdan o'tgan</th><th data-i18n="th.lastlogin">Oxirgi kirish</th><th></th>
-        </tr>
-      </thead>
-      <tbody id="adminRows"></tbody>
-    </table>
-    <p class="hint">Ro'yxatdan o'tgan barcha foydalanuvchilar. O'chirish — faqat boshqa hisoblar uchun; o'z hisobingizni o'chira olmaysiz.</p>
+
+    <div class="table-toolbar">
+      <div class="search-box">
+        <input type="search" id="adminUserSearch" placeholder="🔍 Login yoki ism bo'yicha qidiruv..." />
+      </div>
+      <span class="muted" id="adminCount">—</span>
+    </div>
+
+    <div class="table-wrap">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th data-i18n="th.patient">F.I.Sh.</th>
+            <th data-i18n="th.login">Login</th>
+            <th data-i18n="th.nation">Millat</th>
+            <th data-i18n="th.role">Rol</th>
+            <th>Face ID</th>
+            <th data-i18n="th.created">Ro'yxatdan o'tgan</th>
+            <th data-i18n="th.lastlogin">Oxirgi kirish</th>
+            <th>Amallar</th>
+          </tr>
+        </thead>
+        <tbody id="adminRows"></tbody>
+      </table>
+    </div>
+    <p class="hint">Foydalanuvchilar xavfsiz boshqaruvi. Parollar scrypt algoritmi bilan shifrlangan. O'z hisobingiz himoyalangan.</p>
   </div>
 </section>
 
@@ -574,22 +687,22 @@
         <h4>3. Saraton xavfi — LNT modeli</h4>
         <p><code>Xavf(%) = D_yil(Sv) × 5%</code> — ICRP/BEIR VII: 1 Sv uchun ~5% qo'shimcha o'lim xavfi.</p>
 
-        <h4>4. Sog'lik yo'qotish (%) — yagona ko'rsatkich</h4>
+        <h4>4. Sog'lik yo'qotish (%) — ko'p mezonli model</h4>
         <p><code>SY% = 0.55·DozaBal + 0.25·VizualBal + 0.20·SimptomBal</code><br/>
-        <span class="muted">DozaBal — logarifmik shkala + o'tkir to'qima zarari (kunlik doza); VizualBal — camera vision; SimptomBal — klinik belgilar.</span></p>
+        <span class="muted">DozaBal — logarifmik shkala + o'tkir to'qima zarari; VizualBal — camera vision; SimptomBal — klinik belgilar.</span></p>
 
-        <h4>5. Camera vision</h4>
-        <p>YCbCr teri maskasi → teri rangi indeksi (a* proxy), rPPG (yashil kanal tebranishi, Goertzel spektri 0.6–3.2 Hz) → puls, harakat → barqarorlik.</p>
+        <h4>5. Camera vision & rPPG</h4>
+        <p>YCbCr teri maskasi → teri rangi indeksi (a* proxy), rPPG (yashil kanal fotopletizmogrammasi, Goertzel spektri 0.6–3.2 Hz) → puls, harakat → barqarorlik.</p>
         <div class="warn-box">
-          <b>Cheklov:</b> veb-kamera ionizalovchi nurni fizik jihatdan qabul qila olmaydi.
-          Kamera — faqat ko'rinadigan tibbiy belgilar skriningi; aniq doza dozimetr (Geiger–Muller) orqali olinadi.
-          Tizim tibbiy diagniz o'rnini bosmaydi — yakuniy qaror shifokor tomonidan qabul qilinadi.
+          <b>Cheklov:</b> veb-kamera ionizalovchi nurni bevosita o'lchay olmaydi.
+          Kamera — faqat ko'rinadigan tibbiy belgilar skriningi; aniq doza dozimetr (Geiger–Müller) orqali olinadi.
+          Tizim tibbiy diagnoz o'rnini bosmaydi — yakuniy xulosa shifokor tomonidan qabul qilinadi.
         </div>
       </div>
     </div>
 
     <div class="card">
-      <div class="card-head"><h2>Standartlar va limittlar</h2></div>
+      <div class="card-head"><h2>Standartlar va limitlar</h2></div>
       <table class="table">
         <thead><tr><th>Mezon</th><th>Qiymat</th></tr></thead>
         <tbody id="limitRows"></tbody>
@@ -635,25 +748,30 @@
 <!-- Bemor tarixi -->
 <div class="modal" id="modalHistory">
   <div class="modal-box modal-wide">
-    <div class="modal-head"><h3 id="histTitle">Bemor tarixi</h3><button class="x" data-close>✕</button></div>
+    <div class="modal-head"><h3 id="histTitle">Bemor pasporti va tibbiy tarixi</h3><button class="x" data-close>✕</button></div>
     <div id="histBody"></div>
   </div>
 </div>
 
-<!-- Chop etish uchun yo'llanma -->
+<!-- Rasmiy Chop etish / Yo'llanma maydoni -->
 <div id="printArea"></div>
 
 <footer class="footer">
-  <span>RadSkrin v1.0 · Radatsion nazorat va sog'lik skrining tizimi</span>
-  <span class="muted">Tibbiy qurilmaga tegmaydi — skrining va navbat boshqaruvi uchun. Yakuniy qaror: shifokor.</span>
+  <div class="footer-left">
+    <span>RadSkrin v2.0 Enterprise · NMKG Radiatsion nazorat va sog'liq skrining tizimi</span>
+  </div>
+  <div class="footer-right">
+    <span class="muted">Tibbiy qurilma o'rnini bosmaydi — skrining va navbat boshqaruvi uchun. Yakuniy qaror: shifokor.</span>
+  </div>
 </footer>
 
 <script defer src="vendor/face-api.js"></script>
 <script defer src="js/config.js"></script>
 <script defer src="js/i18n.js"></script>
+<script defer src="js/audio-synth.js"></script>
 <script defer src="js/radiation-model.js"></script>
 <script defer src="js/faceid.js"></script>
-  <script defer src="js/ai-diagnosis.js"></script>
+<script defer src="js/ai-diagnosis.js"></script>
 <script defer src="js/tts.js"></script>
 <script defer src="js/ai-chat.js"></script>
 <script defer src="js/voice-in.js"></script>
