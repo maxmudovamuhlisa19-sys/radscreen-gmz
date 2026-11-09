@@ -117,10 +117,10 @@
   }
 
   function toUrl(text, lang, voice) {
-    let u = '/api/tts?lang=' + encodeURIComponent(lang || 'uz') +
-      '&text=' + encodeURIComponent(text);
-    if (voice) u += '&voice=' + encodeURIComponent(voice);
-    return u;
+    const v = voice || (lang === 'ru' ? 'ru-RU-SvetlanaNeural' : 'uz-UZ-MadinaNeural');
+    return '/api/tts?lang=' + encodeURIComponent(lang || 'uz') +
+      '&text=' + encodeURIComponent(text) +
+      '&voice=' + encodeURIComponent(v);
   }
 
   async function loadBlob(url) {
@@ -214,9 +214,10 @@
   }
 
   /** Server TTS ishlayaptimi (qisqa sinov) */
-  async function probe(lang) {
+  async function probe(lang, voice) {
     try {
-      const res = await fetch(toUrl('ok', lang || 'uz'), { method: 'GET' });
+      const v = voice || (lang === 'ru' ? 'ru-RU-SvetlanaNeural' : 'uz-UZ-MadinaNeural');
+      const res = await fetch(toUrl('ok', lang || 'uz', v), { method: 'GET' });
       return res.ok;
     } catch { return false; }
   }

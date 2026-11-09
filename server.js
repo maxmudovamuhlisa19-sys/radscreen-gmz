@@ -27,7 +27,7 @@ const TTS_VOICES = {
   en: 'en-US-JennyNeural'
 };
 const TTS_TEXT_MAX = 600;
-const PY = process.env.PYTHON || 'python3';
+const PY = process.env.PYTHON || (process.platform === 'win32' ? 'python' : 'python3');
 
 function ttsCacheFile(voice, text) {
   const h = crypto.createHash('sha1').update(voice + ' ' + text).digest('hex');
@@ -43,10 +43,10 @@ async function ttsSynth(voice, text) {
   } catch {}
 
   const commands = [
-    { bin: process.env.PYTHON || 'python3', args: ['-m', 'edge_tts', '--voice', voice, '--text', text, '--write-media', file] },
+    { bin: PY, args: ['-m', 'edge_tts', '--voice', voice, '--text', text, '--write-media', file] },
     { bin: 'edge-tts', args: ['--voice', voice, '--text', text, '--write-media', file] },
-    { bin: 'python', args: ['-m', 'edge_tts', '--voice', voice, '--text', text, '--write-media', file] },
-    { bin: 'python3', args: ['-m', 'edge_tts', '--voice', voice, '--text', text, '--write-media', file] }
+    { bin: 'python3', args: ['-m', 'edge_tts', '--voice', voice, '--text', text, '--write-media', file] },
+    { bin: 'python', args: ['-m', 'edge_tts', '--voice', voice, '--text', text, '--write-media', file] }
   ];
 
   let lastErr = null;

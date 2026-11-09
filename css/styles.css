@@ -817,23 +817,9 @@ body.auth-open { overflow: hidden; }
 
 /* ------------------------ AI JINS TANLOSH (seg) --------------------------- */
 
-/* ------------------- AI ANIQLASH: GLITCH ("bijr-bijr") --------------------- */
-/* Yuz tanilganda banner "bijr-bijr" bo'lib, RGB-tebranish bilan ko'rinadi */
-.id-banner.b-ok { animation: dropIn .3s ease, aiGlitch 2.4s steps(2, end) infinite; }
-.id-banner.b-candidate { animation: dropIn .3s ease, aiGlitch 3.6s steps(2, end) infinite; }
-
-@keyframes aiGlitch {
-  0%, 88%, 100% {
-    text-shadow: none;
-    filter: none;
-    transform: translateX(-50%);
-  }
-  89% { text-shadow: -2px 0 #22d3ee, 2px 0 #ef4444; transform: translateX(calc(-50% - 2px)); }
-  90% { text-shadow: 2px 0 #a855f7, -2px 0 #22c55e; transform: translateX(calc(-50% + 2px)); filter: hue-rotate(35deg); }
-  91% { text-shadow: -1px 0 #ef4444, 1px 0 #38bdf8; transform: translateX(-50%); }
-  93% { text-shadow: 3px 0 #22d3ee, -3px 0 #f97316; transform: translateX(calc(-50% + 3px)) skewX(4deg); filter: contrast(1.6); }
-  94% { text-shadow: none; transform: translateX(-50%); filter: none; }
-}
+/* ------------------- AI ANIQLASH: Silliq zamonaviy ID Banner ----------------- */
+.id-banner.b-ok { animation: dropIn .25s cubic-bezier(0.16, 1, 0.3, 1); }
+.id-banner.b-candidate { animation: dropIn .25s cubic-bezier(0.16, 1, 0.3, 1); }
 
 /* AI faollashgan holat: Zamonaviy Cyber-Medical chegara aulasi */
 .cam-frame.ai-on {
