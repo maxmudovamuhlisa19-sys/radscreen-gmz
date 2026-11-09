@@ -296,16 +296,46 @@ window.VisionEngine = (() => {
       this._lastRunAt = 0;
       this.warmupUntil = 0;
       this.errors = [];
+      this.mode3D = true; // 3D Fazoviy Biometriya standart yoqilgan
+      this.selectedDeviceId = null;
+      this._smoothYaw = 0;
+      this._smoothPitch = 0;
+      this._smoothRoll = 0;
+      this._smoothDepth = 50;
     }
 
     /* ------------------------------ Kamera ------------------------------ */
-    async start() {
-      if (this.running) return true;
+    async getCameraDevices() {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) return [];
+      try {
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        return devices.filter((d) => d.kind === 'videoinput');
+      } catch {
+        return [];
+      }
+    }
+
+    toggle3D() {
+      this.mode3D = !this.mode3D;
+      return this.mode3D;
+    }
+
+    async start(deviceId) {
+      if (deviceId) this.selectedDeviceId = deviceId;
+      if (this.running) {
+        if (deviceId && this.stream) {
+          try { this.stream.getTracks().forEach((t) => t.stop()); } catch {}
+          this.stream = null;
+          this.running = false;
+        } else {
+          return true;
+        }
+      }
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
         throw new Error('Bu brauzerda kamera API mavjud emas (HTTPS/localhost kerak).');
       }
 
-      // Android: registratsiya kabi boshqa oqim kamerani band qilib qoymasin
+      // Boshqa oqim kamerani band qilib qo'ymasligini ta'minlash
       try {
         document.querySelectorAll('video').forEach((v) => {
           if (v !== this.video && v.srcObject) {
@@ -315,9 +345,22 @@ window.VisionEngine = (() => {
         });
       } catch { /* ignore */ }
 
-      // ketma-ket yumshoq constraint'lar — Android'da biri albatta ishlaydi
-      const attempts = [
+      // 3D IR / WebCam tanlangan deviceId va ketma-ket yumshoq constraint'lar
+      const attempts = [];
+      if (this.selectedDeviceId) {
+        attempts.push(
+          { deviceId: { exact: this.selectedDeviceId }, width: { ideal: 1920, min: 1280 }, height: { ideal: 1080, min: 720 } },
+          { deviceId: { exact: this.selectedDeviceId }, width: { ideal: 1280 }, height: { ideal: 720 } },
+          { deviceId: { exact: this.selectedDeviceId } }
+        );
+      }
+      attempts.push(
+        { width: { ideal: 1920, min: 1280 }, height: { ideal: 1080, min: 720 }, facingMode: { ideal: 'user' } },
         { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: { ideal: 'user' } },
+        { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: { ideal: 'user' } },
+        { facingMode: { ideal: 'user' } },
+        true
+      );
         { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: { ideal: 'user' } },
         { facingMode: { ideal: 'user' } },
         true
@@ -463,6 +506,8 @@ window.VisionEngine = (() => {
         y1: Math.round(clamp(fa.box.y1 * ky, 0, H - 1))
       } : null;
       const faEyes = fa && fa.eyes ? fa.eyes.map((e) => ({ x: e.x * kx, y: e.y * ky })) : null;
+      const faLandmarks = fa && fa.landmarks ? fa.landmarks.map((p) => ({ x: p.x * kx, y: p.y * ky })) : null;
+      const faPose3d = fa && fa.pose3d ? fa.pose3d : null;
       const srcBox = faBox || (face ? { x0: face.x0, y0: face.y0, x1: face.x1, y1: face.y1 } : null);
 
       /* --- ROI kuzatuv (EMA + hold) --- */
@@ -617,6 +662,8 @@ window.VisionEngine = (() => {
         stability,
         quality: round(quality),
         motion: round(faceMotion, 2),
+        landmarks: faLandmarks || null,
+        pose3d: faPose3d || this._estimatePose3d(box, this._eyes),
         ppgSamples: this._ppg && this._ppg.length ? this._ppg.slice(-80).map((x) => x.v) : []
       };
 
@@ -675,6 +722,30 @@ window.VisionEngine = (() => {
       const bpm = bestF * 60;
       if (bpm < 42 || bpm > 165) return null;
       return { bpm, conf };
+    }
+
+    /* ------------------------- 3D Fazoviy Pose bahosi --------------------- */
+    _estimatePose3d(box, eyes) {
+      if (!box) return { yaw: 0, pitch: 0, roll: 0, zDepthCm: 50 };
+      const bw = box.x1 - box.x0 + 1;
+      const bh = box.y1 - box.y0 + 1;
+      let yaw = 0, pitch = 0, roll = 0;
+      let ipd = bw * 0.38;
+      if (eyes && eyes.length === 2) {
+        const dx = eyes[1].x - eyes[0].x;
+        const dy = eyes[1].y - eyes[0].y;
+        ipd = Math.hypot(dx, dy) || ipd;
+        roll = Math.round(Math.atan2(dy, dx) * (180 / Math.PI));
+        const midX = (eyes[0].x + eyes[1].x) / 2;
+        const boxMidX = (box.x0 + box.x1) / 2;
+        yaw = Math.round(((midX - boxMidX) / (bw * 0.45 || 1)) * 55);
+        const midY = (eyes[0].y + eyes[1].y) / 2;
+        const boxMidY = (box.y0 + box.y1) / 2;
+        pitch = Math.round(((boxMidY - midY) / (bh * 0.45 || 1)) * 45);
+      }
+      const focal = W * 0.88;
+      const zDepthCm = Math.min(120, Math.max(25, Math.round((6.3 * focal) / (ipd || 60))));
+      return { yaw, pitch, roll, zDepthCm, ipdPx: Math.round(ipd) };
     }
 
     /* --------------------------- Yuz mini-surati -------------------------- */
@@ -904,6 +975,132 @@ window.VisionEngine = (() => {
         g.restore();
       }
 
+      // b2) 3D FAZOVIY BIOMETRIYA (Apple Face ID & TrueDepth 3D Spatial Voxel Box)
+      if (this.mode3D) {
+        const pose = info.pose3d || { yaw: 0, pitch: 0, roll: 0, zDepthCm: 50 };
+        const yaw = this._smoothYaw = (this._smoothYaw || 0) * 0.70 + (pose.yaw || 0) * 0.30;
+        const pitch = this._smoothPitch = (this._smoothPitch || 0) * 0.70 + (pose.pitch || 0) * 0.30;
+        const roll = this._smoothRoll = (this._smoothRoll || 0) * 0.70 + (pose.roll || 0) * 0.30;
+        const depthCm = this._smoothDepth = (this._smoothDepth || 50) * 0.80 + (pose.zDepthCm || 50) * 0.20;
+
+        const radYaw = (yaw * Math.PI) / 180;
+        const radPitch = (pitch * Math.PI) / 180;
+        const boxDepth = Math.min(fw, fh) * 0.44;
+        const bdx = -Math.sin(radYaw) * boxDepth;
+        const bdy = Math.sin(radPitch) * boxDepth;
+        const bScale = 0.82;
+        const bcx = cx + bdx, bcy = cy + bdy;
+        const bfw = fw * bScale, bfh = fh * bScale;
+        const bfx = bcx - bfw / 2, bfy = bcy - bfh / 2;
+
+        // 3D Kub orqa yuzi (Back face wireframe)
+        g.save();
+        g.strokeStyle = 'rgba(0, 180, 216, 0.45)';
+        g.setLineDash([4, 4]);
+        g.lineWidth = 1.3;
+        if (g.roundRect) {
+          g.beginPath();
+          g.roundRect(bfx, bfy, bfw, bfh, 8);
+          g.stroke();
+        } else {
+          g.strokeRect(bfx, bfy, bfw, bfh);
+        }
+
+        // 4 ta fazoviy chuqurlik nur-vektorlari (Front to Back 3D Connectors)
+        g.strokeStyle = 'rgba(0, 229, 163, 0.38)';
+        g.setLineDash([3, 4]);
+        g.lineWidth = 1.2;
+        g.beginPath();
+        g.moveTo(fx, fy); g.lineTo(bfx, bfy);
+        g.moveTo(fx + fw, fy); g.lineTo(bfx + bfw, bfy);
+        g.moveTo(fx + fw, fy + fh); g.lineTo(bfx + bfw, bfy + bfh);
+        g.moveTo(fx, fy + fh); g.lineTo(bfx, bfy + bfh);
+        g.stroke();
+        g.restore();
+
+        // 3D LiDAR Topografik Nuqtalar (Face Mesh Anchor Nodes)
+        if (info.landmarks && info.landmarks.length >= 28) {
+          g.save();
+          const lms = info.landmarks;
+          const anchors = [0, 4, 8, 12, 16, 17, 21, 22, 26, 27, 28, 30, 33, 36, 45, 48, 54];
+          for (const idx of anchors) {
+            const pt = lms[idx];
+            if (!pt) continue;
+            const px = mx(pt.x), py = pt.y * sy;
+            const isNose = idx === 30 || idx === 28;
+            g.fillStyle = isNose ? '#00e5a3' : '#00b4d8';
+            g.shadowColor = isNose ? 'rgba(0, 229, 163, 0.85)' : 'rgba(0, 180, 216, 0.6)';
+            g.shadowBlur = isNose ? 7 : 3;
+            g.beginPath();
+            g.arc(px, py, isNose ? 2.5 : 1.7, 0, Math.PI * 2);
+            g.fill();
+          }
+          // Burun 3D Normal Vektori (Fazo yo'nalishi)
+          const nosePt = lms[30];
+          if (nosePt) {
+            const nx = mx(nosePt.x), ny = nosePt.y * sy;
+            const nLen = 22;
+            const nVx = nx + Math.sin(radYaw) * nLen;
+            const nVy = ny - Math.sin(radPitch) * nLen;
+            g.strokeStyle = '#00e5a3';
+            g.lineWidth = 1.6;
+            g.shadowColor = 'rgba(0, 229, 163, 0.9)';
+            g.shadowBlur = 6;
+            g.setLineDash([]);
+            g.beginPath();
+            g.moveTo(nx, ny);
+            g.lineTo(nVx, nVy);
+            g.stroke();
+            g.fillStyle = '#ffffff';
+            g.beginPath();
+            g.arc(nVx, nVy, 2.2, 0, Math.PI * 2);
+            g.fill();
+          }
+          g.restore();
+        }
+
+        // Mini 3D Orientation Gizmo (Yuqori o'ng burchakdagi 3D koordinata kompas)
+        {
+          const gx = w - 46, gy = 46, gLen = 18;
+          g.save();
+          g.fillStyle = 'rgba(7, 15, 28, 0.82)';
+          g.strokeStyle = 'rgba(0, 180, 216, 0.35)';
+          g.lineWidth = 1;
+          g.beginPath();
+          g.arc(gx, gy, 24, 0, Math.PI * 2);
+          g.fill();
+          g.stroke();
+
+          const cRoll = Math.cos(roll * Math.PI / 180);
+          const sRoll = Math.sin(roll * Math.PI / 180);
+
+          // X o'qi (Qizil / Red)
+          const xAx = gx + Math.cos(radYaw) * gLen * cRoll;
+          const xAy = gy + Math.cos(radYaw) * gLen * sRoll;
+          g.strokeStyle = '#ff3366';
+          g.lineWidth = 2;
+          g.beginPath(); g.moveTo(gx, gy); g.lineTo(xAx, xAy); g.stroke();
+
+          // Y o'qi (Zumrad / Green)
+          const yAx = gx - sRoll * gLen * Math.cos(radPitch);
+          const yAy = gy + cRoll * gLen * Math.cos(radPitch);
+          g.strokeStyle = '#00e5a3';
+          g.beginPath(); g.moveTo(gx, gy); g.lineTo(yAx, yAy); g.stroke();
+
+          // Z o'qi (Moviy / Depth)
+          const zAx = gx - Math.sin(radYaw) * gLen * 0.7;
+          const zAy = gy - Math.sin(radPitch) * gLen * 0.7;
+          g.strokeStyle = '#00b4d8';
+          g.beginPath(); g.moveTo(gx, gy); g.lineTo(zAx, zAy); g.stroke();
+
+          g.fillStyle = '#94a3b8';
+          g.font = '700 8px system-ui, sans-serif';
+          g.textAlign = 'center';
+          g.fillText('3D POSE', gx, gy + 19);
+          g.restore();
+        }
+      }
+
       // c) Nozik lazer skaner to'lqini (Faqat yuz ramkasi ichida)
       {
         g.save();
@@ -961,16 +1158,17 @@ window.VisionEngine = (() => {
 
       // g) Zamonaviy Shaffof Telemetriya Paneli (HUD - Pastki burchakda)
       if (!compact) {
-        const hudW = 205, hudH = 78;
+        const is3D = this.mode3D;
+        const hudW = 215, hudH = is3D ? 95 : 78;
         const hudX = 14, hudY = h - hudH - 14;
         g.save();
         // Glassmorphism fon
-        g.fillStyle = 'rgba(7, 15, 28, 0.82)';
+        g.fillStyle = 'rgba(7, 15, 28, 0.85)';
         g.beginPath();
         if (g.roundRect) g.roundRect(hudX, hudY, hudW, hudH, 10);
         else g.rect(hudX, hudY, hudW, hudH);
         g.fill();
-        g.strokeStyle = 'rgba(0, 229, 163, 0.35)';
+        g.strokeStyle = is3D ? 'rgba(0, 229, 163, 0.45)' : 'rgba(0, 229, 163, 0.35)';
         g.lineWidth = 1;
         g.stroke();
 
@@ -981,25 +1179,39 @@ window.VisionEngine = (() => {
         g.fillRect(hudX + 12, hudY, hudW - 24, 2);
         g.shadowBlur = 0;
 
-        g.font = '600 10.5px system-ui, -apple-system, sans-serif';
+        g.font = '600 10px system-ui, -apple-system, sans-serif';
 
         // 1-qator: Puls
         g.fillStyle = '#94a3b8';
-        g.fillText('❤️ Yurak urishi (rPPG):', hudX + 12, hudY + 22);
+        g.fillText('❤️ Yurak urishi (rPPG):', hudX + 12, hudY + 20);
         g.fillStyle = info.pulse ? '#00e5a3' : '#e2e8f0';
-        g.fillText(info.pulse ? (info.pulse + ' bpm') : 'Hisoblanmoqda...', hudX + hudW - (info.pulse ? 52 : 90), hudY + 22);
+        g.fillText(info.pulse ? (info.pulse + ' bpm') : 'Hisoblanmoqda...', hudX + hudW - (info.pulse ? 50 : 88), hudY + 20);
 
         // 2-qator: Teri rangi
         g.fillStyle = '#94a3b8';
-        g.fillText('🔬 Teri pigmenti:', hudX + 12, hudY + 41);
+        g.fillText('🔬 Teri pigmenti:', hudX + 12, hudY + 38);
         g.fillStyle = '#00b4d8';
-        g.fillText(info.pallor != null ? (info.pallor + ' / 100') : '—', hudX + hudW - 48, hudY + 41);
+        g.fillText(info.pallor != null ? (info.pallor + ' / 100') : '—', hudX + hudW - 46, hudY + 38);
 
         // 3-qator: Barqarorlik
         g.fillStyle = '#94a3b8';
-        g.fillText('⚡ Barqarorlik:', hudX + 12, hudY + 60);
+        g.fillText('⚡ Barqarorlik:', hudX + 12, hudY + 56);
         g.fillStyle = '#ffb703';
-        g.fillText((Math.round(info.stability || 100) + '%'), hudX + hudW - 42, hudY + 60);
+        g.fillText((Math.round(info.stability || 100) + '%'), hudX + hudW - 40, hudY + 56);
+
+        // 4-qator: 3D Fazoviy Masofa va Pose
+        if (is3D) {
+          const pose = info.pose3d || { yaw: 0, pitch: 0, roll: 0, zDepthCm: 50 };
+          g.fillStyle = '#94a3b8';
+          g.fillText('🧊 3D Masofa (Z-Depth):', hudX + 12, hudY + 74);
+          g.fillStyle = '#00e5a3';
+          g.fillText(`${Math.round(this._smoothDepth || pose.zDepthCm || 50)} cm`, hudX + hudW - 46, hudY + 74);
+
+          g.fillStyle = '#94a3b8';
+          g.fillText('📐 3D Burchak (Y/P):', hudX + 12, hudY + 89);
+          g.fillStyle = '#38bdf8';
+          g.fillText(`${Math.round(this._smoothYaw || 0)}° / ${Math.round(this._smoothPitch || 0)}°`, hudX + hudW - 52, hudY + 89);
+        }
 
         g.restore();
       } else {

@@ -85,15 +85,49 @@ window.FaceID = (() => {
       if (!r) return null;
       const b = r.detection.box;
       let eyes = null;
+      let landmarks = null;
+      let pose3d = null;
       try {
         const pos = r.landmarks.positions;
+        landmarks = pos.map((p) => ({ x: p.x, y: p.y }));
         const center = (a, z) => {
           let x = 0, y = 0;
           for (let i = a; i < z; i++) { x += pos[i].x; y += pos[i].y; }
           return { x: x / (z - a), y: y / (z - a) };
         };
-        eyes = [center(36, 42), center(42, 48)];   // chap ko'z (36-41), o'ng ko'z (42-47)
-      } catch { eyes = null; }
+        const eyeL = center(36, 42); // chap ko'z (36-41)
+        const eyeR = center(42, 48); // o'ng ko'z (42-47)
+        eyes = [eyeL, eyeR];
+
+        // 3D Fazoviy Pose hisoblash (Yaw, Pitch, Roll va Z-Depth)
+        const ipd = Math.hypot(eyeR.x - eyeL.x, eyeR.y - eyeL.y) || 60;
+        const eyeMid = { x: (eyeL.x + eyeR.x) / 2, y: (eyeL.y + eyeR.y) / 2 };
+        const noseTip = pos[30];
+        const chin = pos[8];
+
+        // Yaw: burun uchining ikki ko'z chekkasiga masofasi assimetriyasi
+        const dL = Math.hypot(noseTip.x - pos[36].x, noseTip.y - pos[36].y);
+        const dR = Math.hypot(pos[45].x - noseTip.x, pos[45].y - noseTip.y);
+        const yaw = Math.round(((dL - dR) / (dL + dR || 1)) * 68);
+
+        // Pitch: ko'z-o'rtasi -> burun -> jag' vertikal nisbati
+        const e2n = noseTip.y - eyeMid.y;
+        const n2c = chin.y - noseTip.y;
+        const pitch = Math.round(((e2n - n2c * 0.72) / (e2n + n2c || 1)) * 55);
+
+        // Roll: ko'zlar o'qining burilish burchagi
+        const roll = Math.round(Math.atan2(eyeR.y - eyeL.y, eyeR.x - eyeL.x) * (180 / Math.PI));
+
+        // Z-Depth (Santimetrda masofa): inson ko'zlari orasi ~6.3 cm
+        const focal = w * 0.88;
+        const zDepthCm = Math.min(120, Math.max(25, Math.round((6.3 * focal) / ipd)));
+
+        pose3d = { yaw, pitch, roll, zDepthCm, ipdPx: Math.round(ipd) };
+      } catch {
+        eyes = null;
+        landmarks = null;
+        pose3d = null;
+      }
       return {
         descriptor: Array.from(r.descriptor),
         score: Math.round(r.detection.score * 100),
@@ -101,7 +135,9 @@ window.FaceID = (() => {
           x0: b.x, y0: b.y,
           x1: b.x + b.width, y1: b.y + b.height
         },
-        eyes
+        eyes,
+        landmarks,
+        pose3d
       };
     } catch {
       return null;

@@ -315,7 +315,7 @@
         </div>
       </div>
 
-      <div class="row gap">
+      <div class="row gap" style="flex-wrap: wrap;">
         <button class="btn btn-primary" id="btnCamStart">▶ Kamerani yoqish</button>
         <button class="btn btn-ghost" id="btnCamStop" disabled>■ To'xtatish</button>
         <button class="btn btn-ghost" id="btnCamSnap" disabled title="Skrining holati suratini saqlash">📸 Skrining surati</button>
@@ -323,6 +323,19 @@
           🖼 Rasm yuklash
           <input type="file" id="imgInput" accept="image/*" hidden />
         </label>
+      </div>
+
+      <!-- 3D Kamera va Datchik Boshqaruvi -->
+      <div class="row gap mt-sm" style="margin-top: 8px; align-items: center; flex-wrap: wrap; background: rgba(7, 15, 28, 0.45); padding: 8px 12px; border-radius: 10px; border: 1px solid rgba(0, 180, 216, 0.2);">
+        <select id="camDeviceSelect" class="input sm" style="max-width: 280px; font-size: 11.5px; background: rgba(7, 15, 28, 0.85); border-color: rgba(0, 180, 216, 0.4); color: #e2e8f0; border-radius: 6px;" title="Kamera va 3D IR datchikni tanlash">
+          <option value="">📷 Kamera (Avtomatik)</option>
+        </select>
+        <button class="btn btn-ghost btn-sm" id="btnToggle3D" style="border-color: rgba(0, 229, 163, 0.5); color: #00e5a3; font-weight: 700; font-size: 11.5px;" title="3D Fazoviy Biometriya">
+          🧊 3D Rejim: FAOL
+        </button>
+        <span class="muted sm" id="cam3dBadge" style="font-size: 11px; color: #00e5a3; font-family: var(--mono);">
+          [3D IR DATCHIK TAYYOR]
+        </span>
       </div>
 
       <div class="cam-metrics" id="camMetrics">

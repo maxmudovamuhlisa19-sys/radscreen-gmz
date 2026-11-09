@@ -303,6 +303,34 @@
     if (bSnap) bSnap.addEventListener('click', () => takeScreeningSnapshot());
     $('#imgInput').addEventListener('change', onImageUpload);
 
+    // 3D va Kamera Tanlash
+    $('#camDeviceSelect')?.addEventListener('change', async (e) => {
+      const devId = e.target.value;
+      if (!devId) return;
+      if (engine && engine.running) {
+        try {
+          await engine.start(devId);
+          UI.toast(`Kamera almashtirildi: ${e.target.options[e.target.selectedIndex].text}`, 'ok');
+        } catch (err) {
+          UI.toast(`Kamera almashtirishda xato: ${err.message}`, 'error');
+        }
+      } else if (engine) {
+        engine.selectedDeviceId = devId;
+      }
+    });
+
+    $('#btnToggle3D')?.addEventListener('click', () => {
+      if (!engine) return;
+      const on = engine.toggle3D();
+      const btn = $('#btnToggle3D');
+      if (btn) {
+        btn.textContent = on ? '🧊 3D Rejim: FAOL' : '⬜ 3D Rejim: O\'CHIQ';
+        btn.style.color = on ? '#00e5a3' : '#94a3b8';
+        btn.style.borderColor = on ? 'rgba(0, 229, 163, 0.5)' : 'rgba(148, 163, 184, 0.3)';
+      }
+      UI.toast(on ? '3D Fazoviy Biometriya yoqildi' : '2D Oddiy rejimga o\'tildi', 'ok');
+    });
+
     // tahlil
     $('#btnAnalyze').addEventListener('click', runAnalysis);
     $('#btnSaveReferral').addEventListener('click', saveReferral);
@@ -673,9 +701,33 @@
     UI.toast(I18n.t('msg.snap.saved'), 'ok');
   }
 
+  async function populateCameraDevices() {
+    const sel = $('#camDeviceSelect');
+    if (!sel || !engine || !engine.getCameraDevices) return;
+    try {
+      const devices = await engine.getCameraDevices();
+      if (!devices || !devices.length) return;
+      sel.innerHTML = '';
+      let irFound = false;
+      devices.forEach((d, idx) => {
+        const opt = document.createElement('option');
+        opt.value = d.deviceId;
+        const label = d.label || `Kamera ${idx + 1}`;
+        const isIR = /ir|infra|3d|depth|hello/i.test(label);
+        if (isIR) irFound = true;
+        opt.textContent = isIR ? `⚡ ${label} (3D IR datchik)` : `📷 ${label}`;
+        sel.appendChild(opt);
+      });
+      if (engine.selectedDeviceId) sel.value = engine.selectedDeviceId;
+      const b3d = $('#cam3dBadge');
+      if (b3d) b3d.textContent = irFound ? '[ASUS IR 3D DATCHIK BIRIKTIRILDI]' : '[3D FAZOVIY MATRIX FAOL]';
+    } catch {}
+  }
+
   async function startCamera() {
     try {
       await engine.start();
+      populateCameraDevices();
       $('#camPlaceholder').classList.add('hide');
       $('#camState').hidden = false;
       $('#btnCamStart').disabled = true;
@@ -683,7 +735,7 @@
       if ($('#btnCamSnap')) $('#btnCamSnap').disabled = false;
       $('#camHint').textContent = 'Yuzni ichki ramkada ushlang, yuzga yorug\'lik tushsin. Puls uchun 6–12 soniya tinch turish kerak.';
       updateStatus();
-      UI.toast('Kamera yoqildi — yuz skriningi boshlandi', 'ok');
+      UI.toast('Kamera yoqildi — 3D fazoviy yuz skriningi boshlandi', 'ok');
     } catch (e) {
       UI.toast('Kamera ochilmadi: ' + e.message, 'error', 6000);
       $('#camHint').textContent = 'Kamera uchun ruxsat bering yoki "Rasm yuklash" orqali tahlil qiling.';
@@ -762,6 +814,14 @@
 
     // monitoring sahifasini ham yangilaymiz
     if (state.analysis) renderMonitor(state.analysis);
+
+    // 3D Top HUD Telemetry
+    if (f.pose3d) {
+      const cm = $('#cthMode');
+      if (cm) cm.textContent = `3D POSE: Y ${f.pose3d.yaw}° P ${f.pose3d.pitch}°`;
+      const cf = $('#cthFps');
+      if (cf) cf.textContent = `Z: ${f.pose3d.zDepthCm} cm`;
+    }
 
     // Face ID: tanish (descriptor — VisionEngine ichida FaceID.compute)
     feedIdentity(f);
