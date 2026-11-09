@@ -18,10 +18,13 @@ const ROOT = __dirname;
 const DATA_DIR = path.join(ROOT, 'data');
 const TTS_DIR = path.join(DATA_DIR, 'tts');       // MP3 kesh
 const TTS_VOICES = {
-  uz: 'uz-UZ-SardorNeural',
+  uz: 'uz-UZ-MadinaNeural',
   uz_f: 'uz-UZ-MadinaNeural',
-  ru: 'ru-RU-DmitryNeural',
-  ru_f: 'ru-RU-SvetlanaNeural'
+  uz_m: 'uz-UZ-SardorNeural',
+  ru: 'ru-RU-SvetlanaNeural',
+  ru_f: 'ru-RU-SvetlanaNeural',
+  ru_m: 'ru-RU-DmitryNeural',
+  en: 'en-US-JennyNeural'
 };
 const TTS_TEXT_MAX = 600;
 const PY = process.env.PYTHON || 'python';
@@ -406,10 +409,11 @@ async function handleApi(req, res, url) {
   }
 
   // GET /api/tts?text=...&lang=uz  ->  MP3 (Edge neural ovoz, kesh bilan)
-  if (kind === 'tts' && method === 'GET') {
+  if (kind === 'tts' && (method === 'GET' || method === 'HEAD')) {
     const text = String(url.searchParams.get('text') || '').trim();
     const lang = String(url.searchParams.get('lang') || 'uz').toLowerCase();
-    const voice = TTS_VOICES[lang] || TTS_VOICES.uz;
+    const voiceParam = url.searchParams.get('voice');
+    const voice = voiceParam || TTS_VOICES[lang] || TTS_VOICES.uz;
     if (!text) return send(res, 400, { error: 'text parametri kerak' });
     if (text.length > TTS_TEXT_MAX) {
       return send(res, 413, { error: `Matn juda uzun (maks ${TTS_TEXT_MAX} belgi)` });
@@ -422,6 +426,7 @@ async function handleApi(req, res, url) {
         'Cache-Control': 'public, max-age=31536000, immutable',
         'X-TTS-Voice': voice
       });
+      if (method === 'HEAD') return res.end();
       return res.end(audio);
     } catch (e) {
       return send(res, 502, { error: 'Ovoz generatsiya qilinmadi', detail: String(e.message || e) });

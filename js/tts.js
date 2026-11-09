@@ -116,9 +116,11 @@
     return out;
   }
 
-  function toUrl(text, lang) {
-    return '/api/tts?lang=' + encodeURIComponent(lang || 'uz') +
+  function toUrl(text, lang, voice) {
+    let u = '/api/tts?lang=' + encodeURIComponent(lang || 'uz') +
       '&text=' + encodeURIComponent(text);
+    if (voice) u += '&voice=' + encodeURIComponent(voice);
+    return u;
   }
 
   async function loadBlob(url) {
@@ -173,13 +175,14 @@
   async function speak(text, lang, opt) {
     opt = opt || {};
     const my = ++seq;
+    const voice = opt.voice || (lang === 'ru' ? 'ru-RU-SvetlanaNeural' : 'uz-UZ-MadinaNeural');
     const parts = chunk(spellNumbers(text, lang === 'ru' ? 'ru' : 'uz'), URL_MAX);
     if (!parts.length) return false;
 
     // birinchi bo'lib server TTS ni sinab ko'ramiz
     let blob;
     try {
-      blob = await loadBlob(toUrl(parts[0], lang));
+      blob = await loadBlob(toUrl(parts[0], lang, voice));
     } catch (e) {
       return false;
     }
@@ -191,7 +194,7 @@
     let ok = true;
     for (let i = 0; i < parts.length; i++) {
       if (my !== seq) break;
-      const b = i === 0 ? blob : await loadBlob(toUrl(parts[i], lang)).catch(() => null);
+      const b = i === 0 ? blob : await loadBlob(toUrl(parts[i], lang, voice)).catch(() => null);
       if (!b) { ok = false; break; }
       if (my !== seq) break;
       const good = await new Promise((r) => playBlob(b, my, r));

@@ -7,7 +7,7 @@ Ishlatish:  python gen_voice.py  &&  python make_ppt.py  &&  python ppt_anim.py
 import os, subprocess, sys
 
 OUT = os.path.join(os.environ.get('TEMP', '.'), 'opencode', 'media', 'voice')
-VOICE = 'uz-UZ-SardorNeural'
+VOICE = 'uz-UZ-MadinaNeural'
 RATE = '-5%'   # sekinroq, qulayroq talaffuz
 
 TEXTS = {

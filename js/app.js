@@ -1358,7 +1358,9 @@
       const u = new SpeechSynthesisUtterance(String(text || '').slice(0, 600));
       u.lang = lang === 'ru' ? 'ru-RU' : 'uz-UZ';
       const vs = window.speechSynthesis.getVoices() || [];
-      const hit = vs.find((v) => v.lang && v.lang.slice(0, 2).toLowerCase() === (lang === 'ru' ? 'ru' : 'uz'));
+      const hit = vs.find((v) => /madina|female|woman|zira/i.test(v.name) && v.lang && v.lang.slice(0, 2).toLowerCase() === (lang === 'ru' ? 'ru' : 'uz'))
+        || vs.find((v) => v.lang && v.lang.slice(0, 2).toLowerCase() === (lang === 'ru' ? 'ru' : 'uz'))
+        || vs.find((v) => /female|woman/i.test(v.name));
       if (hit) u.voice = hit;
       window.speechSynthesis.speak(u);
       return true;
