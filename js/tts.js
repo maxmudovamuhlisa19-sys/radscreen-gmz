@@ -125,7 +125,7 @@
 
   async function loadBlob(url) {
     if (blobCache.has(url)) return blobCache.get(url);
-    const res = await fetch(url, { cache: 'force-cache' });
+    const res = await fetch(url, { cache: 'no-cache' });
     if (!res.ok) throw new Error('TTS ' + res.status);
     const blob = await res.blob();
     if (!blob || blob.size < 200) throw new Error('TTS bo\'sh audio');

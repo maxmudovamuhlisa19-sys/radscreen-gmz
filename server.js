@@ -174,7 +174,10 @@ function writeJson(file, data) {
 function send(res, status, body, type = 'application/json; charset=utf-8') {
   res.writeHead(status, {
     'Content-Type': type,
-    'Cache-Control': 'no-store',
+    'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0',
+    'Pragma': 'no-cache',
+    'Expires': '0',
+    'Surrogate-Control': 'no-store',
     'X-Content-Type-Options': 'nosniff'
   });
   res.end(typeof body === 'string' ? body : JSON.stringify(body));
@@ -440,7 +443,9 @@ async function handleApi(req, res, url) {
       res.writeHead(200, {
         'Content-Type': 'audio/mpeg',
         'Content-Length': audio.length,
-        'Cache-Control': 'public, max-age=31536000, immutable',
+        'Cache-Control': 'no-cache, must-revalidate, max-age=0',
+        'Pragma': 'no-cache',
+        'Expires': '0',
         'X-TTS-Voice': voice
       });
       if (method === 'HEAD') return res.end();
@@ -550,10 +555,37 @@ function serveStatic(req, res, url) {
       return send(res, 404, '404 — Fayl topilmadi', 'text/plain; charset=utf-8');
     }
     const ext = path.extname(filePath).toLowerCase();
-    res.writeHead(200, {
+
+    // Universal Anti-Cache headers - brauzer va proksi hech qachon eski kesh saqlamaydi
+    const noCacheHeaders = {
       'Content-Type': MIME[ext] || 'application/octet-stream',
-      'Content-Length': stat.size,
-      'Cache-Control': 'no-cache'
+      'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0',
+      'Pragma': 'no-cache',
+      'Expires': '0',
+      'Surrogate-Control': 'no-store'
+    };
+
+    // Agar HTML so'ralsa, uning ichidagi barcha skript/CSS havolalariga har safar dinamik timestamp ulab beriladi
+    if (ext === '.html') {
+      fs.readFile(filePath, 'utf8', (readErr, content) => {
+        if (readErr) {
+          return send(res, 500, 'HTML o\'qishda xato', 'text/plain; charset=utf-8');
+        }
+        const dynamicVersion = Date.now().toString(36);
+        const freshHtml = content.replace(/\?v=[^"'\s>]+/g, `?v=${dynamicVersion}`);
+        const buf = Buffer.from(freshHtml, 'utf8');
+        res.writeHead(200, {
+          ...noCacheHeaders,
+          'Content-Length': buf.length
+        });
+        return res.end(buf);
+      });
+      return;
+    }
+
+    res.writeHead(200, {
+      ...noCacheHeaders,
+      'Content-Length': stat.size
     });
     fs.createReadStream(filePath).pipe(res);
   });
