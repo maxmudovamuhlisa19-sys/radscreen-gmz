@@ -342,21 +342,6 @@ window.Auth = (() => {
       });
     };
 
-    $('#btnQuickLogin')?.addEventListener('click', async () => {
-      showError('');
-      loading(true);
-      try {
-        await login({ login: 'sardor', password: '123456' });
-        toast('Xush kelibsiz, Sardor!', 'ok');
-        hideScreen();
-        if (afterAuth) afterAuth(); else location.reload();
-      } catch (err) {
-        showError(err.message);
-      } finally {
-        loading(false);
-      }
-    });
-
     $('#authLoginForm').addEventListener('submit', async (e) => {
       e.preventDefault();
       showError('');
