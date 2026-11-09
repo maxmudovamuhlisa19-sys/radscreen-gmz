@@ -955,7 +955,7 @@
     // AI ovozli salomlashish (uz-UZ-MadinaNeural)
     const displayName = (person.name || 'xodim').trim().replace(/^[a-z]/, (c) => c.toUpperCase());
     const greeting = isUser
-      ? `Assalomu alaykum, ${displayName}! Shaxsingiz 3D biometrik Face ID orqali tasdiqlandi. Nazorat faol.`
+      ? `Assalomu alaykum, ${displayName}! Shaxsingiz biometrik yuzni tanish orqali tasdiqlandi. Tizim nazorati faol.`
       : `Assalomu alaykum, ${displayName}! Shaxsingiz tasdiqlandi. Tibbiy skrining boshlandi.`;
     aiSay(greeting, 'uz');
 

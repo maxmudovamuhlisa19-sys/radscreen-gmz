@@ -81,18 +81,20 @@
     if (!text) return '';
     let s = String(text);
     if (lang === 'uz' || lang === 'uz-UZ' || !lang) {
-      // 3D / 3d / 3-D -> uch de
-      s = s.replace(/\b3\s*[-–]?\s*[dD]\b/g, 'uch de');
+      // 3D / 3d / 3-D -> uch o'lchamli biometrik
+      s = s.replace(/\b3\s*[-–]?\s*[dD]\b/g, 'uch o\'lchamli');
 
-      // Face ID / FaceID / face id -> Feys aydi
-      s = s.replace(/\bFace[\s_-]*ID\b/gi, 'Feys aydi');
+      // Face ID / FaceID / face id / Feys aydi -> yuzni tanish (hech qachon "fate it" deb buzmasligi uchun)
+      s = s.replace(/\bFace[\s_-]*ID\b/gi, 'yuzni tanish');
+      s = s.replace(/\bFaceID\b/gi, 'yuzni tanish');
+      s = s.replace(/\bFeys[\s_-]*aydi\b/gi, 'yuzni tanish');
 
-      // biometrik ID -> biometrik aydi
-      s = s.replace(/\bbiometrik\s+ID\b/gi, 'biometrik aydi');
+      // biometrik ID -> biometrik identifikatsiya
+      s = s.replace(/\bbiometrik\s+ID\b/gi, 'biometrik identifikatsiya');
       s = s.replace(/\bbio[\s-]+metrik\b/gi, 'biometrik');
 
-      // Standalone ID -> aydi
-      s = s.replace(/\bID\b/g, 'aydi');
+      // Standalone ID -> identifikatsiya
+      s = s.replace(/\bID\b/g, 'identifikatsiya');
 
       // Ismlar: sarik -> Sarik, sardor -> Sardor (tabiiy intonatsiya uchun)
       s = s.replace(/\bsarik\b/gi, 'Sarik');
