@@ -255,7 +255,19 @@ window.VisionEngine = (() => {
       const score = geo * gateFeature * gateGeo * gateEye;
 
       if (!best || score > best.score) {
-        best = { ...c, bw, bh, areaRatio, aspect, solidity, ev, featureScore, score };
+        // Yuz anatomiyasi: bo'y/en nisbati odatda 1.2..1.3 oralig'ida bo'ladi.
+        // Ochiq yoqa, bo'yin yoki ko'krak terisi qo'shilib ketgan bo'lsa, jag'dan pastini kesamiz:
+        const maxH = Math.round(bw * 1.30);
+        let y1 = c.y1;
+        if (bh > maxH) {
+          y1 = c.y0 + maxH;
+        }
+        if (ev && ev.eyes && ev.eyes.length === 2) {
+          const eyeY = (ev.eyes[0].y + ev.eyes[1].y) / 2;
+          const chinY = Math.round(eyeY + bw * 0.72);
+          if (chinY < y1) y1 = chinY;
+        }
+        best = { ...c, y1, bw, bh: y1 - c.y0 + 1, areaRatio, aspect, solidity, ev, featureScore, score };
       }
     }
     // ishonch chegarasi: past bahoni "yuz emas" deb hisoblaymiz
@@ -491,9 +503,9 @@ window.VisionEngine = (() => {
       let roi = null;
       if (srcBox) {
         const b = { x0: srcBox.x0, y0: srcBox.y0, x1: srcBox.x1, y1: srcBox.y1 };
+        const a = faBox ? 0.55 : 0.35;
         if (!this._roi) this._roi = b;
         else {
-          const a = 0.35;
           this._roi = {
             x0: this._roi.x0 + (b.x0 - this._roi.x0) * a,
             y0: this._roi.y0 + (b.y0 - this._roi.y0) * a,
@@ -850,11 +862,11 @@ window.VisionEngine = (() => {
       // 3) AGAR YUZ ANIQLANGAN BO'LSA:
       const x = mx(box.x1 + 1), y = box.y0 * sy;
       const bw = (box.x1 - box.x0 + 1) * sx, bh = (box.y1 - box.y0 + 1) * sy;
-      const pad = 12;
+      const pad = Math.max(6, Math.min(14, Math.round(bw * 0.08)));
       const fx = x - pad, fy = y - pad;
       const fw = bw + pad * 2, fh = bh + pad * 2;
       const cx = fx + fw / 2, cy = fy + fh / 2;
-      const R = 12;
+      const R = Math.min(12, Math.round(fw * 0.1));
 
       // a) Yumshoq ambient nurlanish
       {
@@ -903,16 +915,16 @@ window.VisionEngine = (() => {
         g.beginPath();
         g.moveTo(fx, fy + fh - L);
         g.lineTo(fx, fy + fh - R);
-        g.arcTo(fx, fy, fx + R, fy + fh, R);
+        g.arcTo(fx, fy + fh, fx + R, fy + fh, R);
         g.lineTo(fx + L, fy + fh);
         g.stroke();
 
         // BR
         g.beginPath();
-        g.moveTo(fx + fw - L, fy + fh);
-        g.lineTo(fx + fw - R, fy + fh);
-        g.arcTo(fx + fw, fy + fh, fx + fw, fy + fh - R, R);
-        g.lineTo(fx + fw, fy + fh - L);
+        g.moveTo(fx + fw, fy + fh - L);
+        g.lineTo(fx + fw, fy + fh - R);
+        g.arcTo(fx + fw, fy + fh, fx + fw - R, fy + fh, R);
+        g.lineTo(fx + fw - L, fy + fh);
         g.stroke();
 
         // Nozik ichki ramka konturi
