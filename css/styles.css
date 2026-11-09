@@ -234,19 +234,57 @@ input[type="range"]::-webkit-slider-thumb {
 
 /* ------------------------------- CAMERA ---------------------------------- */
 .cam-frame {
-  position: relative; background: #030712; border-radius: 14px; overflow: hidden;
-  border: 1px solid var(--line); aspect-ratio: 4 / 3;
+  position: relative; background: #030712; border-radius: 18px; overflow: hidden;
+  border: 1px solid rgba(0, 229, 163, 0.25); aspect-ratio: 4 / 3;
+  box-shadow: 0 16px 36px -12px rgba(0, 0, 0, 0.8), inset 0 0 35px rgba(0, 180, 216, 0.04);
+  transition: border-color .3s, box-shadow .3s;
 }
 .cam-frame video { width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); display: block; }
-.cam-frame canvas { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.cam-frame canvas { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 2; }
+
+/* Top HUD bar */
+.cam-top-hud {
+  position: absolute; top: 12px; left: 14px; right: 14px; z-index: 3; pointer-events: none;
+  display: flex; justify-content: space-between; align-items: center;
+}
+.cth-badge {
+  display: flex; align-items: center; gap: 7px;
+  background: rgba(7, 15, 28, 0.85); backdrop-filter: blur(8px);
+  border: 1px solid rgba(0, 229, 163, 0.35); border-radius: 999px;
+  padding: 4px 12px; font: 700 10.5px var(--mono); color: #00e5a3;
+  letter-spacing: .5px; box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+}
+.cth-dot {
+  width: 7px; height: 7px; border-radius: 50%; background: #00e5a3;
+  box-shadow: 0 0 8px #00e5a3; animation: cthPulse 1.5s ease-in-out infinite;
+}
+@keyframes cthPulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: .4; transform: scale(.85); } }
+.cth-info {
+  background: rgba(7, 15, 28, 0.85); backdrop-filter: blur(8px);
+  border: 1px solid rgba(0, 180, 216, 0.25); border-radius: 999px;
+  padding: 4px 12px; font: 600 10.5px var(--mono); color: #94a3b8;
+}
+
 .cam-placeholder {
-  position: absolute; inset: 0; display: grid; place-content: center; text-items: center;
-  text-align: center; gap: 6px; color: var(--muted); background: #030712;
+  position: absolute; inset: 0; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; text-align: center; gap: 10px;
+  color: var(--muted); background: radial-gradient(circle at center, rgba(15, 23, 42, 0.95), #030712);
+  z-index: 3; padding: 20px;
 }
 .cam-placeholder.hide { display: none; }
-.cam-icon { font-size: 42px; opacity: .5; }
-.cam-placeholder p { margin: 0; color: var(--text); font-weight: 700; }
-.cam-placeholder span { font-size: 12.5px; }
+.cam-icon {
+  width: 64px; height: 64px; border-radius: 50%;
+  background: rgba(0, 229, 163, 0.08); border: 1px solid rgba(0, 229, 163, 0.3);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 28px; box-shadow: 0 0 20px rgba(0, 229, 163, 0.15);
+  animation: pulseIcon 3s ease-in-out infinite;
+}
+@keyframes pulseIcon {
+  0%, 100% { transform: scale(1); box-shadow: 0 0 20px rgba(0, 229, 163, 0.15); }
+  50% { transform: scale(1.06); box-shadow: 0 0 30px rgba(0, 229, 163, 0.35); }
+}
+.cam-placeholder p { margin: 0; color: var(--text); font-weight: 700; font-size: 16px; }
+.cam-placeholder span { font-size: 13px; max-width: 320px; color: var(--muted); line-height: 1.4; }
 .cam-metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-top: 14px; }
 @media (max-width: 800px) { .cam-metrics { grid-template-columns: repeat(2, 1fr); } }
 .cam-metric { display: grid; gap: 6px; background: rgba(2, 6, 23, .4); border: 1px solid var(--line); border-radius: 12px; padding: 11px; }
@@ -393,17 +431,18 @@ input[type="range"]::-webkit-slider-thumb {
 
 /* ------------------------------ FACE ID ---------------------------------- */
 .id-banner {
-  position: absolute; top: 10px; left: 50%; transform: translateX(-50%);
-  z-index: 5; padding: 9px 16px; border-radius: 12px; font-size: 13.5px;
-  backdrop-filter: blur(8px); display: flex; align-items: center; gap: 9px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, .45); max-width: 92%;
-  animation: dropIn .3s ease;
+  position: absolute; top: 14px; left: 50%; transform: translateX(-50%);
+  z-index: 5; padding: 8px 18px; border-radius: 999px; font-size: 13px; font-weight: 600;
+  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  display: flex; align-items: center; gap: 9px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, .6); max-width: 92%;
+  animation: dropIn .25s cubic-bezier(0.16, 1, 0.3, 1);
 }
-@keyframes dropIn { from { opacity: 0; transform: translate(-50%, -8px); } to { opacity: 1; transform: translate(-50%, 0); } }
-.id-banner.b-ok { background: rgba(6, 78, 59, .88); border: 1px solid rgba(34, 197, 94, .7); color: #bbf7d0; }
-.id-banner.b-candidate { background: rgba(120, 53, 15, .9); border: 1px solid rgba(249, 115, 22, .7); color: #fed7aa; }
-.id-banner.b-unknown { background: rgba(30, 41, 59, .9); border: 1px solid rgba(148, 163, 184, .5); color: #cbd5e1; }
-.id-banner b { color: #fff; }
+@keyframes dropIn { from { opacity: 0; transform: translate(-50%, -10px); } to { opacity: 1; transform: translate(-50%, 0); } }
+.id-banner.b-ok { background: rgba(6, 78, 59, .92); border: 1px solid rgba(0, 229, 163, .8); color: #e2e8f0; box-shadow: 0 0 20px rgba(0, 229, 163, .25); }
+.id-banner.b-candidate { background: rgba(120, 53, 15, .92); border: 1px solid rgba(255, 183, 3, .8); color: #fed7aa; box-shadow: 0 0 20px rgba(255, 183, 3, .25); }
+.id-banner.b-unknown { background: rgba(15, 23, 42, .92); border: 1px solid rgba(148, 163, 184, .6); color: #cbd5e1; }
+.id-banner b { color: #fff; font-weight: 700; }
 
 .faceid {
   margin-top: 14px; border: 1px dashed rgba(34, 211, 238, .35);
@@ -796,52 +835,36 @@ body.auth-open { overflow: hidden; }
   94% { text-shadow: none; transform: translateX(-50%); filter: none; }
 }
 
-/* AI ramkasi: yuz atrofida jonli skaner + burchakli HUD */
-.cam-frame.ai-on::before {
-  content: ''; position: absolute; inset: 0; z-index: 3; pointer-events: none;
-  background:
-    repeating-linear-gradient(0deg, rgba(34, 211, 238, .07) 0 1px, transparent 1px 3px);
-  animation: aiFlicker 1.7s steps(3, end) infinite;
-}
-.cam-frame.ai-on::after {
-  content: 'AI · NEURAL SCAN';
-  position: absolute; top: 8px; right: 10px; z-index: 4; pointer-events: none;
-  font: 700 10.5px ui-monospace, Consolas, monospace; letter-spacing: 2.5px;
-  color: #22d3ee; text-shadow: 0 0 10px rgba(34, 211, 238, .9), -1px 0 #ef4444, 1px 0 #a855f7;
-  animation: aiTag 1.1s steps(2, end) infinite;
-}
-@keyframes aiFlicker {
-  0%, 100% { opacity: .55; }
-  50% { opacity: .95; }
-  72% { opacity: .3; }
-}
-@keyframes aiTag {
-  0%, 62%, 100% { opacity: 1; }
-  63% { opacity: .25; letter-spacing: 4px; }
-  64% { opacity: 1; letter-spacing: 2.5px; }
-  82% { opacity: .4; }
-  83% { opacity: 1; }
+/* AI faollashgan holat: Zamonaviy Cyber-Medical chegara aulasi */
+.cam-frame.ai-on {
+  border-color: rgba(0, 229, 163, 0.55);
+  box-shadow: 0 0 25px rgba(0, 229, 163, 0.22), inset 0 0 25px rgba(0, 229, 163, 0.08);
 }
 
-/* Tanilgan shaxs kartochkasi: AI HUD uslubi */
+/* Tanilgan shaxs kartochkasi: Zamonaviy Glassmorphism ID Badge */
 .ai-hud {
-  position: absolute; left: 10px; bottom: 10px; z-index: 4; pointer-events: none;
-  display: flex; flex-direction: column; gap: 3px;
-  padding: 9px 13px; border: 1px solid rgba(34, 211, 238, .65);
-  border-left: 3px solid var(--accent);
-  background: linear-gradient(135deg, rgba(2, 6, 23, .88), rgba(34, 211, 238, .13));
-  backdrop-filter: blur(6px); border-radius: 8px;
-  font: 600 12px ui-monospace, Consolas, monospace;
-  animation: hudIn .28s ease;
+  position: absolute; left: 14px; top: 50px; z-index: 4; pointer-events: none;
+  display: flex; flex-direction: column; gap: 4px;
+  padding: 10px 16px; border: 1px solid rgba(0, 229, 163, 0.45);
+  border-left: 4px solid #00e5a3;
+  background: rgba(7, 15, 28, 0.90);
+  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  border-radius: 12px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.65), 0 0 16px rgba(0, 229, 163, 0.2);
+  font: 600 12px system-ui, -apple-system, sans-serif;
+  animation: hudSlideIn .28s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.ai-hud-badge {
+  font-size: 9.5px; font-weight: 800; letter-spacing: 1px;
+  color: #00e5a3; text-transform: uppercase;
 }
 .ai-hud .hud-name {
-  font-size: 15px; font-weight: 800; color: #fff;
-  text-shadow: -1px 0 #22d3ee, 1px 0 #ef4444;
-  animation: aiGlitch 2.2s steps(2, end) infinite;
+  font-size: 16px; font-weight: 800; color: #ffffff;
+  letter-spacing: .3px;
 }
-.ai-hud .hud-sub { color: #67e8f9; font-size: 11px; letter-spacing: .8px; }
-.ai-hud .hud-pct { color: #4ade80; font-size: 11px; }
-@keyframes hudIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+.ai-hud .hud-sub { color: #00b4d8; font-size: 11.5px; font-weight: 600; letter-spacing: .5px; }
+.ai-hud .hud-pct { color: #00e5a3; font-size: 11px; font-weight: 700; font-family: var(--mono); }
+@keyframes hudSlideIn { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: none; } }
 
 /* ------------------------- MOBIL (Android): yuzni yopmasin ------------------ */
 @media (max-width: 640px) {

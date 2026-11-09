@@ -293,8 +293,13 @@
       <div class="cam-frame" id="camFrame">
         <video id="camVideo" autoplay playsinline muted></video>
         <canvas id="camOverlay"></canvas>
+        <div class="cam-top-hud" id="camTopHud">
+          <div class="cth-badge"><span class="cth-dot"></span> <span id="cthStatusText">AI BIO-VISION</span></div>
+          <div class="cth-info"><span id="cthFps">30 FPS</span> · <span id="cthMode">NEURAL LOCK</span></div>
+        </div>
         <div class="id-banner" id="idBanner" hidden></div>
         <div class="ai-hud" id="aiHud" hidden>
+          <div class="ai-hud-badge">✓ TASDIQLANDI · FACE ID</div>
           <span class="hud-name" id="hudName">—</span>
           <span class="hud-sub" id="hudSub">NEURAL FACE MATCH</span>
           <span class="hud-pct" id="hudPct">—</span>
@@ -303,6 +308,7 @@
           <div class="cam-icon">📷</div>
           <p>Kamera o'chirilgan</p>
           <span>Yuz ichki ramkada to'liq ko'rinsin, yuzga yorug'lik tushsin</span>
+          <button class="btn btn-primary btn-sm" id="btnCamStartHero" style="margin-top: 6px;">▶ Kamerani yoqish</button>
         </div>
       </div>
 

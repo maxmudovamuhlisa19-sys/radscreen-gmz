@@ -712,7 +712,7 @@ window.VisionEngine = (() => {
       }
     }
 
-    /* ------------------------------- Overlay ----------------------------- */
+    /* ------------------- Zamonaviy Medical Biometric Overlay ----------------- */
     _drawOverlay(box, info) {
       const c = this.overlay;
       if (!c) return;
@@ -730,460 +730,362 @@ window.VisionEngine = (() => {
       const mx = (x) => w - x * sx;
 
       const now = performance.now();
-      const acc = info.parsed ? '#00ff88' : info.found ? '#ffcc00' : '#ff2d95';
-      const glow = info.parsed ? 'rgba(0,255,136,.85)'
-        : info.found ? 'rgba(255,204,0,.85)' : 'rgba(255,45,149,.85)';
-
-      // Kompakt rejim (telefon/tablet): katta panel va yozuvlar yuzni yopmasligi
-      // uchun faqat ramka + bitta qator status chiziladi.
       const compact = w < 520;
 
-      // fon: AI nazorat to'ri (nuqtalar)
-      g.save();
-      g.fillStyle = 'rgba(34,211,238,.13)';
-      for (let yy = 13; yy < h; yy += 26) {
-        for (let xx = 13; xx < w; xx += 26) g.fillRect(xx, yy, 1.5, 1.5);
-      }
-      g.restore();
+      // Holat ranglari: Zamonaviy Cyber-Medical palitrasi
+      const okColor = info.parsed ? '#00e5a3' : info.found ? '#00b4d8' : '#ffb703';
+      const glowColor = info.parsed ? 'rgba(0, 229, 163, 0.75)' : info.found ? 'rgba(0, 180, 216, 0.75)' : 'rgba(255, 183, 3, 0.75)';
 
-      // skaner chizigi (butun kadr bo'ylab)
+      // 1) Kamera kadrining 4 burchagidagi ultra-zamonaviy HUD belgilari (Corner brackets)
       {
-        const ph = ((now / 30) % (h + 80)) - 40;
-        const grad = g.createLinearGradient(0, ph - 34, 0, ph + 34);
-        grad.addColorStop(0, 'rgba(34,211,238,0)');
-        grad.addColorStop(0.5, 'rgba(34,211,238,.22)');
-        grad.addColorStop(1, 'rgba(34,211,238,0)');
-        g.fillStyle = grad;
-        g.fillRect(0, ph - 34, w, 68);
-        g.fillStyle = 'rgba(34,211,238,.55)';
-        g.fillRect(0, ph, w, 1);
-      }
-
-      // markazlash yo'nalishi — AI retikel
-      {
-        const cx0 = w * 0.5, cy0 = h * 0.47, r0 = Math.min(w, h) * 0.2;
+        const bL = 18, bP = 14;
         g.save();
-        g.strokeStyle = 'rgba(34,211,238,.45)';
-        g.lineWidth = 1.5;
-        g.shadowColor = 'rgba(34,211,238,.8)';
-        g.shadowBlur = 8;
-        g.setLineDash([6, 8]);
-        g.lineDashOffset = -(now / 45) % 14;
-        g.beginPath(); g.arc(cx0, cy0, r0, 0, Math.PI * 2); g.stroke();
+        g.strokeStyle = 'rgba(0, 180, 216, 0.35)';
+        g.lineWidth = 2;
+        g.lineCap = 'round';
+        // Yuqori chap
+        g.beginPath(); g.moveTo(bP, bP + bL); g.lineTo(bP, bP); g.lineTo(bP + bL, bP); g.stroke();
+        // Yuqori o'ng
+        g.beginPath(); g.moveTo(w - bP - bL, bP); g.lineTo(w - bP, bP); g.lineTo(w - bP, bP + bL); g.stroke();
+        // Quyi chap
+        g.beginPath(); g.moveTo(bP, h - bP - bL); g.lineTo(bP, h - bP); g.lineTo(bP + bL, h - bP); g.stroke();
+        // Quyi o'ng
+        g.beginPath(); g.moveTo(w - bP - bL, h - bP); g.lineTo(w - bP, h - bP); g.lineTo(w - bP, h - bP - bL); g.stroke();
+        g.restore();
+      }
+
+      // 2) AGAR YUZ ANIQLANMAGAN BO'LSA: Elegant Biometrik Siluet & Markazlash ramkasi
+      if (!box) {
+        const cx0 = w * 0.5, cy0 = h * 0.45;
+        const rx = Math.min(w * 0.22, 115);
+        const ry = rx * 1.34;
+        const pulse = 0.5 + 0.5 * Math.sin(now / 500);
+
+        g.save();
+        // Yumshoq nafas oluvchi oval siluet
+        g.strokeStyle = 'rgba(0, 180, 216, ' + (0.3 + pulse * 0.25) + ')';
+        g.lineWidth = 2;
+        g.shadowColor = 'rgba(0, 180, 216, 0.45)';
+        g.shadowBlur = 10;
+        g.setLineDash([8, 8]);
+        g.lineDashOffset = -(now / 70) % 16;
+        g.beginPath();
+        g.ellipse(cx0, cy0, rx, ry, 0, 0, Math.PI * 2);
+        g.stroke();
         g.setLineDash([]);
         g.shadowBlur = 0;
-        g.strokeStyle = 'rgba(34,211,238,.55)';
-        [[-1, 0], [1, 0], [0, -1], [0, 1]].forEach(([dx, dy]) => {
+
+        // Siluet ichida nozik vertikal skaner nuri (faqat oval ichida)
+        g.save();
+        g.beginPath();
+        g.ellipse(cx0, cy0, rx, ry, 0, 0, Math.PI * 2);
+        g.clip();
+        const scanY = cy0 - ry + ((now / 22) % (ry * 2 + 50)) - 25;
+        const sGrd = g.createLinearGradient(0, scanY - 25, 0, scanY + 25);
+        sGrd.addColorStop(0, 'rgba(0, 229, 163, 0)');
+        sGrd.addColorStop(0.5, 'rgba(0, 229, 163, 0.20)');
+        sGrd.addColorStop(1, 'rgba(0, 229, 163, 0)');
+        g.fillStyle = sGrd;
+        g.fillRect(cx0 - rx, scanY - 25, rx * 2, 50);
+        g.fillStyle = 'rgba(0, 229, 163, 0.75)';
+        g.fillRect(cx0 - rx * 0.75, scanY, rx * 1.5, 1.5);
+        g.restore();
+
+        // 4 ta yo'naltiruvchi burchaklar
+        const fL = 20;
+        const fX = cx0 - rx - 12, fY = cy0 - ry - 12;
+        const fW = (rx + 12) * 2, fH = (ry + 12) * 2;
+        g.strokeStyle = 'rgba(0, 229, 163, ' + (0.4 + pulse * 0.3) + ')';
+        g.lineWidth = 2.5;
+        g.lineCap = 'round';
+        [[fX, fY, 1, 1], [fX + fW, fY, -1, 1], [fX, fY + fH, 1, -1], [fX + fW, fY + fH, -1, -1]].forEach(([px, py, dx, dy]) => {
           g.beginPath();
-          g.moveTo(cx0 + dx * r0 * 0.28, cy0 + dy * r0 * 0.28);
-          g.lineTo(cx0 + dx * r0 * 0.62, cy0 + dy * r0 * 0.62);
+          g.moveTo(px + dx * fL, py);
+          g.lineTo(px, py);
+          g.lineTo(px, py + dy * fL);
           g.stroke();
         });
-        g.restore();
-      }
 
-      if (box) {
-        const x = mx(box.x1 + 1), y = box.y0 * sy;
-        const bw = (box.x1 - box.x0 + 1) * sx, bh = (box.y1 - box.y0 + 1) * sy;
-
-        // ===== AI TAHLIL ko'rinishi (yangi model) =====
-        const pad = 10;
-        const fx = x - pad, fy = y - pad;
-        const fw = bw + pad * 2, fh = bh + pad * 2;
-        const cx = fx + fw / 2, cy = fy + fh / 2;
-        const okColor = acc;
-        const flick = 0.85 + 0.15 * Math.sin(now / 140);
-
-        // 0) yuz ortidagi yengil nurnur (faqat chetda, yuzni yashirmaydi)
-        {
-          const R = Math.max(fw, fh) * 0.8;
-          const rg = g.createRadialGradient(cx, cy, R * 0.55, cx, cy, R);
-          rg.addColorStop(0, 'rgba(0,0,0,0)');
-          rg.addColorStop(1, info.parsed ? 'rgba(0,255,136,.10)' : 'rgba(34,211,238,.08)');
-          g.save();
-          g.fillStyle = rg;
-          g.beginPath();
-          g.ellipse(cx, cy, R, R * 1.1, 0, 0, Math.PI * 2);
-          g.fill();
-          g.restore();
-        }
-
-        // 1) aylanuvchi tashqi halqalar (yuz tashqarisida) — kompaktda yo'q
-        if (!compact) {
-          g.save();
-          g.translate(cx, cy);
-          const R = Math.max(fw, fh) * 0.68;
-          [[R, 0.55, 1.6, 0], [R + 7, 0.30, 1.2, 1]].forEach(([rr, arc, lw, dir], i) => {
-            g.save();
-            g.rotate((dir ? -1 : 1) * (now / (2400 + i * 900)));
-            g.strokeStyle = i === 0 ? okColor : 'rgba(34,211,238,.5)';
-            g.globalAlpha = 0.55;
-            g.shadowColor = i === 0 ? glow : 'rgba(34,211,238,.6)';
-            g.shadowBlur = 6;
-            g.lineWidth = lw;
-            g.beginPath();
-            g.arc(0, 0, rr, 0, Math.PI * 2 * arc);
-            g.stroke();
-            g.beginPath();
-            g.arc(0, 0, rr, Math.PI, Math.PI + Math.PI * 2 * arc);
-            g.stroke();
-            g.restore();
-          });
-          g.restore();
-        }
-
-        // 2) ichki to'ldirish — deyarli ko'rinmaydigan shaffof plyonka
-        g.save();
-        g.fillStyle = info.parsed ? 'rgba(0,255,136,.03)' : 'rgba(34,211,238,.025)';
-        g.fillRect(fx, fy, fw, fh);
-        g.restore();
-
-        // 3) yuz MESH to'ri — shaffof, yuzni bosmaydi (kompaktda o'chiriladi)
-        if (!compact) {
-          g.save();
-          g.beginPath(); g.rect(fx, fy, fw, fh); g.clip();
-          const COLS = 6, ROWS = 8;
-          const pts = [];
-          for (let r = 0; r < ROWS; r++) {
-            pts[r] = [];
-            for (let c = 0; c < COLS; c++) {
-              const u = (c + 0.5) / COLS, v = (r + 0.5) / ROWS;
-              const dx = (u - 0.5) * 2, dy = (v - 0.5) * 2;
-              const k = 1 - 0.32 * (dx * dx + dy * dy);
-              const wob = Math.sin(now / 420 + c * 0.9 + r * 0.7) * 1.3;
-              pts[r][c] = {
-                x: cx + (u - 0.5) * fw * k + wob,
-                y: cy + (v - 0.5) * fh * k + wob * 0.6
-              };
-            }
-          }
-          const base = info.parsed ? '0,255,136' : '34,211,238';
-          g.lineWidth = 0.8;
-          // gorizontal + vertikal (juda yupqa)
-          for (let r = 0; r < ROWS; r++) {
-            for (let c = 0; c < COLS; c++) {
-              const p = pts[r][c];
-              if (c < COLS - 1) {
-                g.strokeStyle = `rgba(${base},${0.05 + 0.05 * Math.abs(Math.sin(now / 700 + r))})`;
-                g.beginPath(); g.moveTo(p.x, p.y); g.lineTo(pts[r][c + 1].x, pts[r][c + 1].y); g.stroke();
-              }
-              if (r < ROWS - 1) {
-                g.strokeStyle = `rgba(${base},${0.05 + 0.05 * Math.abs(Math.cos(now / 700 + c))})`;
-                g.beginPath(); g.moveTo(p.x, p.y); g.lineTo(pts[r + 1][c].x, pts[r + 1][c].y); g.stroke();
-              }
-              if (c < COLS - 1 && r < ROWS - 1) {
-                g.strokeStyle = `rgba(${base},.04)`;
-                g.beginPath(); g.moveTo(p.x, p.y); g.lineTo(pts[r + 1][c + 1].x, pts[r + 1][c + 1].y); g.stroke();
-              }
-            }
-          }
-          // nuqtalar — faqat chegarada, yuz ustida emas
-          for (let r = 0; r < ROWS; r++) {
-            for (let c = 0; c < COLS; c++) {
-              const edge = (r === 0 || r === ROWS - 1 || c === 0 || c === COLS - 1);
-              if (!edge) continue;
-              const p = pts[r][c];
-              const pulse = 0.5 + 0.5 * Math.sin(now / 300 + (c + r) * 0.6);
-              g.fillStyle = `rgba(${base},${0.35 + pulse * 0.4})`;
-              g.beginPath();
-              g.arc(p.x, p.y, 1.5 + pulse * 0.8, 0, Math.PI * 2);
-              g.fill();
-            }
-          }
-          g.restore();
-        }
-
-        // 4) landmark chiziqlari — ko'zlar, burun, og'iz + yorliqlar (kompaktda yo'q)
-        let eL, eR, nose, mL, mR, chin;
-        if (!compact) {
-          const eyes = info.eyes;
-          if (eyes && eyes.length === 2) {
-            eL = { x: mx(eyes[0].x), y: eyes[0].y * sy };
-            eR = { x: mx(eyes[1].x), y: eyes[1].y * sy };
-            if (eL.x > eR.x) { const t = eL; eL = eR; eR = t; }
-          } else {
-            eL = { x: cx - fw * 0.17, y: cy - fh * 0.14 };
-            eR = { x: cx + fw * 0.17, y: cy - fh * 0.14 };
-          }
-          nose = { x: cx, y: cy + fh * 0.08 };
-          mL = { x: cx - fw * 0.15, y: cy + fh * 0.26 };
-          mR = { x: cx + fw * 0.15, y: cy + fh * 0.26 };
-          chin = { x: cx, y: cy + fh * 0.40 };
-
-          g.save();
-          g.strokeStyle = okColor;
-          g.globalAlpha = 0.45 * flick;   // yupqa, yuzni bosmaydi
-          g.lineWidth = 1;
-          g.shadowBlur = 4;
-          g.beginPath();
-          g.moveTo(eL.x, eL.y); g.lineTo(nose.x, nose.y); g.lineTo(eR.x, eR.y);
-          g.stroke();
-          g.beginPath();
-          g.moveTo(nose.x, nose.y); g.lineTo(mL.x, mL.y);
-          g.moveTo(nose.x, nose.y); g.lineTo(mR.x, mR.y);
-          g.moveTo(mL.x, mL.y); g.lineTo(mR.x, mR.y);
-          g.stroke();
-          // ko'zlar orasidagi o'lchov chizig'i
-          g.globalAlpha = 0.3;
-          g.setLineDash([3, 4]);
-          g.lineDashOffset = -(now / 60) % 7;
-          g.beginPath();
-          g.moveTo(eL.x, eL.y); g.lineTo(eR.x, eR.y);
-          g.stroke();
-          g.setLineDash([]);
-          g.globalAlpha = 1;
-          g.restore();
-
-          // faqat burun/og'iz nuqtalari — ko'zlar alohida (10-bo'lim)
-          const mark = (p, r) => {
-            g.save();
-            g.strokeStyle = okColor;
-            g.shadowColor = glow; g.shadowBlur = 6;
-            g.lineWidth = 1.3;
-            g.globalAlpha = 0.85;
-            g.beginPath(); g.arc(p.x, p.y, r, 0, Math.PI * 2); g.stroke();
-            g.restore();
-          };
-          mark(nose, 3); mark(mL, 2.5); mark(mR, 2.5);
-        }
-
-        // 5) AI burchak ramkasi (gradient + kesilgan burchaklar)
-        {
-          const grd = g.createLinearGradient(fx, fy, fx + fw, fy + fh);
-          grd.addColorStop(0, okColor);
-          grd.addColorStop(1, info.parsed ? '#00e5ff' : '#a78bfa');
-          g.save();
-          g.strokeStyle = grd;
-          g.shadowColor = glow; g.shadowBlur = 12;
-          g.lineWidth = 2.2;
-          const L = Math.min(34, fw * 0.32, fh * 0.32);
-          [[fx, fy, 1, 1], [fx + fw, fy, -1, 1], [fx, fy + fh, 1, -1], [fx + fw, fy + fh, -1, -1]]
-            .forEach(([px, py, dx, dy]) => {
-              g.beginPath();
-              g.moveTo(px + dx * L, py + dy * 1.5);
-              g.lineTo(px + dx * 1.5, py + dy * 1.5);
-              g.lineTo(px + dx * 1.5, py + dy * L);
-              g.stroke();
-            });
-          // ingichka ichki chiziq
-          g.globalAlpha = 0.35;
-          g.lineWidth = 1;
-          g.shadowBlur = 0;
-          g.strokeRect(fx + 3.5, fy + 3.5, fw - 7, fh - 7);
-          g.restore();
-        }
-
-        // 6) o'lchov belgilari (tick marks) — qutiyon chetida (kompaktda yo'q)
-        if (!compact) {
-          g.save();
-          g.strokeStyle = 'rgba(226,232,240,.55)';
-          g.lineWidth = 1;
-          const step = 14;
-          for (let tx = fx + step; tx < fx + fw - 2; tx += step) {
-            const tall = ((tx - fx) / step) % 5 < 1;
-            g.beginPath();
-            g.moveTo(tx, fy);
-            g.lineTo(tx, fy + (tall ? 6 : 3));
-            g.moveTo(tx, fy + fh);
-            g.lineTo(tx, fy + fh - (tall ? 6 : 3));
-            g.stroke();
-          }
-          for (let ty = fy + step; ty < fy + fh - 2; ty += step) {
-            const tall = ((ty - fy) / step) % 5 < 1;
-            g.beginPath();
-            g.moveTo(fx, ty);
-            g.lineTo(fx + (tall ? 6 : 3), ty);
-            g.moveTo(fx + fw, ty);
-            g.lineTo(fx + fw - (tall ? 6 : 3), ty);
-            g.stroke();
-          }
-          // o'lchov yozuvlari
-          g.font = '700 9px ui-monospace, Consolas, monospace';
-          g.fillStyle = 'rgba(226,232,240,.75)';
-          const wLbl = `${Math.round(bw)}px`, hLbl = `${Math.round(bh)}px`;
-          g.fillText(wLbl, cx - g.measureText(wLbl).width / 2, fy + fh + 16);
-          g.save();
-          g.translate(fx - 6, cy);
-          g.rotate(-Math.PI / 2);
-          g.fillText(hLbl, -g.measureText(hLbl).width / 2, 0);
-          g.restore();
-          g.restore();
-        }
-
-        // 7) skaner progress bar (ramka ostida, segmentli) — kompaktda yo'q
-        if (!compact) {
-          const prog = info.parsed ? 1 : Math.min(0.96, (info.faceScore || 0) / 100);
-          const bh2 = 5, by = fy + fh + 22;
-          const segs = 24, sw = fw / segs;
-          for (let i = 0; i < segs; i++) {
-            const on = (i + 1) / segs <= prog;
-            g.fillStyle = on
-              ? (info.parsed ? '#00ff88' : '#22d3ee')
-              : 'rgba(148,163,184,.22)';
-            if (on) { g.shadowColor = glow; g.shadowBlur = 6; }
-            g.fillRect(fx + i * sw + 1, by, sw - 2, bh2);
-            g.shadowBlur = 0;
-          }
-        }
-
-        // 8) ichki skaner chizig'i (clip) — xira, yuzni yoshirmaydi
-        g.save();
-        g.beginPath(); g.rect(fx, fy, fw, fh); g.clip();
-        const sp = ((now / 16) % (fh + 60)) - 30;
-        const sg = g.createLinearGradient(0, fy + sp - 18, 0, fy + sp + 18);
-        sg.addColorStop(0, 'rgba(34,211,238,0)');
-        sg.addColorStop(0.5, 'rgba(34,211,238,.14)');
-        sg.addColorStop(1, 'rgba(34,211,238,0)');
-        g.fillStyle = sg;
-        g.fillRect(fx, fy + sp - 18, fw, 36);
-        g.fillStyle = 'rgba(0,229,255,.35)';
-        g.fillRect(fx, fy + sp, fw, 1);
-        g.restore();
-
-        // 9) sarlavha — AI tahlil yozuvi (kompaktda: qisqa, ramka ustida)
-        {
-          g.save();
-          g.font = '700 11px ui-monospace, Consolas, monospace';
-          g.fillStyle = okColor;
-          g.shadowColor = glow; g.shadowBlur = 8;
-          const tag = compact
-            ? `${Math.round(info.faceScore || 0)}%`
-            : (info.parsed ? 'AI TAHLIL · ANIQLANDI'
-              : info.found ? 'AI SKANERLASH...' : 'YUZ QIDIRILMOQDA...');
-          g.fillText(tag, fx, fy - 9);
-          if (!compact) {
-            const pct = `${Math.round(info.faceScore || 0)}%`;
-            g.fillStyle = 'rgba(226,232,240,.9)';
-            g.shadowBlur = 0;
-            g.fillText(pct, fx + fw - g.measureText(pct).width, fy - 9);
-          }
-          g.restore();
-        }
-
-        // 10) ko'z nishonlari — faqat burchak yoylari (ko'zni yopmaydi)
-        const drawRet = (px, py, r = 9) => {
-          g.save();
-          g.strokeStyle = okColor;
-          g.globalAlpha = 0.85;
-          g.shadowColor = glow; g.shadowBlur = 6;
-          g.lineWidth = 1.6;
-          [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([sx2, sy2]) => {
-            g.beginPath();
-            g.arc(px, py, r, Math.atan2(sy2, sx2) - 0.45, Math.atan2(sy2, sx2) + 0.45);
-            g.stroke();
-          });
-          g.restore();
-        };
-        if (info.eyes && info.eyes.length === 2) {
-          drawRet(mx(info.eyes[0].x), info.eyes[0].y * sy);
-          drawRet(mx(info.eyes[1].x), info.eyes[1].y * sy);
-        } else if (info.found) {
-          drawRet(cx - fw * 0.17, cy - fh * 0.14);
-          drawRet(cx + fw * 0.17, cy - fh * 0.14);
-        }
-
-        // 11) ma'lumot chiplari (o'ng tomonda, chiziq bilan) — kompaktda yo'q
-        if (!compact && (info.parsed || info.found)) {
-          const chips = [];
-          if (info.pallor != null) chips.push({ c: '#93c5fd', t: `PIGMENT ${info.pallor}` });
-          if (info.pulse) chips.push({ c: '#4ade80', t: `PULSE ${info.pulse}` });
-          chips.push({ c: '#fcd34d', t: `EXP ${Math.round(info.exposure || 0)}` });
-          const cxx = fx + fw + 10;
-          g.save();
-          g.font = '700 9px ui-monospace, Consolas, monospace';
-          chips.forEach((ch2, i) => {
-            const cyy = fy + 12 + i * 17;
-            const tw = g.measureText(ch2.t).width;
-            // ulash chizig'i
-            g.strokeStyle = ch2.c;
-            g.globalAlpha = 0.7;
-            g.lineWidth = 1;
-            g.beginPath();
-            g.moveTo(fx + fw, cyy - 3);
-            g.lineTo(cxx - 3, cyy - 3);
-            g.stroke();
-            g.globalAlpha = 1;
-            g.fillStyle = 'rgba(2,6,23,.8)';
-            g.fillRect(cxx, cyy - 11, tw + 10, 15);
-            g.strokeStyle = ch2.c;
-            g.strokeRect(cxx + 0.5, cyy - 10.5, tw + 9, 14);
-            g.fillStyle = ch2.c;
-            g.fillText(ch2.t, cxx + 5, cyy);
-          });
-          g.restore();
-        }
-      }
-
-      // tahlil paneli — AI yon ko'rinishi (kompaktda: pastda bitta qator)
-      if (!compact) {
-        const lines = [
-          { c: acc, t: `◈ ${info.status.toUpperCase()}` },
-          { c: '#e2e8f0', t: `yuz ${info.faceScore}% · sifat ${info.quality}%` },
-          ...(info.parsed ? [{ c: '#00e5ff', t: '▣ landmark · 68 nuqta' }] : []),
-          ...(info.pulse ? [{ c: '#4ade80', t: `♥ ${info.pulse} bpm · rPPG` }] : []),
-          ...(info.pallor != null ? [{ c: '#93c5fd', t: `◐ pigment ${info.pallor}/100` }] : []),
-          ...(info.exposure != null ? [{ c: '#fcd34d', t: `☀ yorug'lik ${info.exposure}` }] : [])
-        ];
-        const pw = 210;
-        let ph2 = 26 + lines.length * 15 + 8;
-        ph2 = Math.max(ph2, 54);
-        g.save();
-        // panel fon — AI terminal
-        g.fillStyle = 'rgba(2,6,23,.82)';
-        g.fillRect(8, 8, pw, ph2);
-        // sarlavha chizig'i
-        g.fillStyle = acc;
-        g.shadowColor = acc; g.shadowBlur = 8;
-        g.fillRect(8, 8, pw, 3);
-        g.shadowBlur = 0;
-        g.strokeStyle = 'rgba(34,211,238,.35)';
+        // Pastki zamonaviy tavsiya chipi
+        const hint = 'YUZINGIZNI RAMKAGA TO\'G\'RILANG';
+        g.font = '700 11px system-ui, -apple-system, sans-serif';
+        const tw = g.measureText(hint).width;
+        const hX = cx0 - tw / 2 - 14, hY = cy0 + ry + 22;
+        g.fillStyle = 'rgba(7, 15, 28, 0.85)';
+        g.beginPath();
+        if (g.roundRect) g.roundRect(hX, hY, tw + 28, 26, 13);
+        else g.rect(hX, hY, tw + 28, 26);
+        g.fill();
+        g.strokeStyle = 'rgba(0, 180, 216, 0.35)';
         g.lineWidth = 1;
-        g.strokeRect(8.5, 11.5, pw - 1, ph2 - 4);
+        g.stroke();
+        g.fillStyle = '#00e5a3';
+        g.fillText(hint, cx0 - tw / 2, hY + 17);
+        g.restore();
+        return;
+      }
 
-        g.font = '700 11px ui-monospace, Consolas, monospace';
-        g.fillStyle = acc;
-        g.shadowColor = acc; g.shadowBlur = 6;
-        g.fillText('◈ AI TAHLIL · NEURO-V2', 16, 26);
+      // 3) AGAR YUZ ANIQLANGAN BO'LSA:
+      const x = mx(box.x1 + 1), y = box.y0 * sy;
+      const bw = (box.x1 - box.x0 + 1) * sx, bh = (box.y1 - box.y0 + 1) * sy;
+      const pad = 12;
+      const fx = x - pad, fy = y - pad;
+      const fw = bw + pad * 2, fh = bh + pad * 2;
+      const cx = fx + fw / 2, cy = fy + fh / 2;
+      const R = 12;
+
+      // a) Yumshoq ambient nurlanish
+      {
+        const rg = g.createRadialGradient(cx, cy, fw * 0.4, cx, cy, fw * 0.85);
+        rg.addColorStop(0, 'rgba(0,0,0,0)');
+        rg.addColorStop(1, info.parsed ? 'rgba(0,229,163,0.08)' : 'rgba(0,180,216,0.06)');
+        g.save();
+        g.fillStyle = rg;
+        g.beginPath();
+        if (g.roundRect) g.roundRect(fx - 10, fy - 10, fw + 20, fh + 20, R + 6);
+        else g.rect(fx - 10, fy - 10, fw + 20, fh + 20);
+        g.fill();
+        g.restore();
+      }
+
+      // b) 4 ta silliq burchakli ramka (Corner Brackets)
+      {
+        const L = Math.min(34, fw * 0.28, fh * 0.28);
+        g.save();
+        const grd = g.createLinearGradient(fx, fy, fx + fw, fy + fh);
+        grd.addColorStop(0, okColor);
+        grd.addColorStop(1, info.parsed ? '#00b4d8' : '#38bdf8');
+        g.strokeStyle = grd;
+        g.shadowColor = glowColor;
+        g.shadowBlur = 12;
+        g.lineWidth = 2.8;
+        g.lineCap = 'round';
+
+        // TL
+        g.beginPath();
+        g.moveTo(fx, fy + L);
+        g.lineTo(fx, fy + R);
+        g.arcTo(fx, fy, fx + R, fy, R);
+        g.lineTo(fx + L, fy);
+        g.stroke();
+
+        // TR
+        g.beginPath();
+        g.moveTo(fx + fw - L, fy);
+        g.lineTo(fx + fw - R, fy);
+        g.arcTo(fx + fw, fy, fx + fw, fy + R, R);
+        g.lineTo(fx + fw, fy + L);
+        g.stroke();
+
+        // BL
+        g.beginPath();
+        g.moveTo(fx, fy + fh - L);
+        g.lineTo(fx, fy + fh - R);
+        g.arcTo(fx, fy, fx + R, fy + fh, R);
+        g.lineTo(fx + L, fy + fh);
+        g.stroke();
+
+        // BR
+        g.beginPath();
+        g.moveTo(fx + fw - L, fy + fh);
+        g.lineTo(fx + fw - R, fy + fh);
+        g.arcTo(fx + fw, fy + fh, fx + fw, fy + fh - R, R);
+        g.lineTo(fx + fw, fy + fh - L);
+        g.stroke();
+
+        // Nozik ichki ramka konturi
+        g.lineWidth = 1;
+        g.shadowBlur = 0;
+        g.globalAlpha = 0.22;
+        g.beginPath();
+        if (g.roundRect) g.roundRect(fx + 3, fy + 3, fw - 6, fh - 6, R - 2);
+        else g.rect(fx + 3, fy + 3, fw - 6, fh - 6);
+        g.stroke();
+        g.restore();
+      }
+
+      // c) Nozik lazer skaner to'lqini (Faqat yuz ramkasi ichida)
+      {
+        g.save();
+        g.beginPath();
+        if (g.roundRect) g.roundRect(fx, fy, fw, fh, R);
+        else g.rect(fx, fy, fw, fh);
+        g.clip();
+        const sPos = ((now / 18) % (fh + 40)) - 20;
+        const scanY = fy + sPos;
+        const lGrd = g.createLinearGradient(0, scanY - 18, 0, scanY + 18);
+        lGrd.addColorStop(0, 'rgba(0, 229, 163, 0)');
+        lGrd.addColorStop(0.5, info.parsed ? 'rgba(0, 229, 163, 0.16)' : 'rgba(0, 180, 216, 0.16)');
+        lGrd.addColorStop(1, 'rgba(0, 229, 163, 0)');
+        g.fillStyle = lGrd;
+        g.fillRect(fx, scanY - 18, fw, 36);
+
+        // Lazer nuri o'zagi
+        g.fillStyle = okColor;
+        g.shadowColor = glowColor;
+        g.shadowBlur = 8;
+        g.fillRect(fx + 8, scanY, fw - 16, 1.5);
+        g.restore();
+      }
+
+      // d) Peshona rPPG Pulse Sensor zonasi (Fotopletizmogramma nuqtasi)
+      if (!compact && fw > 100) {
+        const roiW = fw * 0.42, roiH = fh * 0.16;
+        const roiX = cx - roiW / 2, roiY = fy + fh * 0.12;
+        g.save();
+        g.strokeStyle = 'rgba(0, 229, 163, 0.45)';
+        g.lineWidth = 1;
+        g.setLineDash([3, 4]);
+        g.beginPath();
+        if (g.roundRect) g.roundRect(roiX, roiY, roiW, roiH, 4);
+        else g.rect(roiX, roiY, roiW, roiH);
+        g.stroke();
+        g.setLineDash([]);
+
+        // rPPG yorlig'i
+        g.font = '700 8.5px ui-monospace, Consolas, monospace';
+        g.fillStyle = '#00e5a3';
+        g.fillText('rPPG SENSOR', roiX + 5, roiY + 10);
+
+        // Puls urish indikatori
+        if (info.pulse) {
+          const pPulse = 0.5 + 0.5 * Math.sin(now / 110);
+          g.fillStyle = 'rgba(255, 51, 102, ' + (0.7 + pPulse * 0.3) + ')';
+          g.beginPath();
+          g.arc(roiX + roiW - 8, roiY + 7, 3, 0, Math.PI * 2);
+          g.fill();
+        }
+        g.restore();
+      }
+
+      // e) Ko'z biometrik nishonlari (Aniq, chigal chiziqlarsiz)
+      const drawEyeMarker = (ex, ey) => {
+        g.save();
+        g.strokeStyle = okColor;
+        g.shadowColor = glowColor;
+        g.shadowBlur = 6;
+        g.lineWidth = 1.4;
+        const eR = 9;
+        [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([dx, dy]) => {
+          g.beginPath();
+          g.moveTo(ex + dx * eR, ey + dy * (eR - 3));
+          g.lineTo(ex + dx * eR, ey + dy * eR);
+          g.lineTo(ex + dx * (eR - 3), ey + dy * eR);
+          g.stroke();
+        });
+        g.fillStyle = okColor;
+        g.beginPath();
+        g.arc(ex, ey, 1.8, 0, Math.PI * 2);
+        g.fill();
+        g.restore();
+      };
+      if (info.eyes && info.eyes.length === 2) {
+        drawEyeMarker(mx(info.eyes[0].x), info.eyes[0].y * sy);
+        drawEyeMarker(mx(info.eyes[1].x), info.eyes[1].y * sy);
+      }
+
+      // f) Yuz ramkasi tepasidagi Status Badge
+      {
+        g.save();
+        const tag = info.parsed
+          ? '✓ BIOMETRIK QAYD · ANIQ'
+          : info.found ? '⚡ SKANERLANMOQDA...' : 'YUZ QIDIRILMOQDA';
+        const pct = Math.round(info.faceScore || 0) + '%';
+        g.font = '700 10.5px system-ui, -apple-system, sans-serif';
+        const tw = g.measureText(tag).width;
+        const pw2 = g.measureText(pct).width;
+        const totalW = tw + pw2 + 28;
+        const bX = cx - totalW / 2;
+        const bY = Math.max(8, fy - 26);
+
+        // Chip foni
+        g.fillStyle = 'rgba(7, 15, 28, 0.88)';
+        g.beginPath();
+        if (g.roundRect) g.roundRect(bX, bY, totalW, 20, 10);
+        else g.rect(bX, bY, totalW, 20);
+        g.fill();
+        g.strokeStyle = okColor;
+        g.lineWidth = 1;
+        g.stroke();
+
+        g.fillStyle = okColor;
+        g.fillText(tag, bX + 10, bY + 14);
+        g.fillStyle = '#ffffff';
+        g.fillText(pct, bX + totalW - pw2 - 10, bY + 14);
+        g.restore();
+      }
+
+      // g) Zamonaviy Shaffof Telemetriya Paneli (HUD - Pastki burchakda)
+      if (!compact) {
+        const hudW = 205, hudH = 78;
+        const hudX = 14, hudY = h - hudH - 14;
+        g.save();
+        // Glassmorphism fon
+        g.fillStyle = 'rgba(7, 15, 28, 0.82)';
+        g.beginPath();
+        if (g.roundRect) g.roundRect(hudX, hudY, hudW, hudH, 10);
+        else g.rect(hudX, hudY, hudW, hudH);
+        g.fill();
+        g.strokeStyle = 'rgba(0, 229, 163, 0.35)';
+        g.lineWidth = 1;
+        g.stroke();
+
+        // Yuqori neon chiziqcha
+        g.fillStyle = okColor;
+        g.shadowColor = glowColor;
+        g.shadowBlur = 6;
+        g.fillRect(hudX + 12, hudY, hudW - 24, 2);
         g.shadowBlur = 0;
 
-        g.font = '600 11px ui-monospace, Consolas, monospace';
-        lines.forEach((l, i) => {
-          g.fillStyle = l.c;
-          g.fillText(l.t, 16, 42 + i * 15);
-        });
+        g.font = '600 10.5px system-ui, -apple-system, sans-serif';
 
-        // pastki: sifat progress chizig'i
-        const by = ph2 + 2;
-        g.fillStyle = 'rgba(148,163,184,.25)';
-        g.fillRect(8, by, pw, 3);
-        g.fillStyle = acc;
-        g.shadowColor = acc; g.shadowBlur = 6;
-        g.fillRect(8, by, pw * Math.min(1, (info.quality || 0) / 100), 3);
+        // 1-qator: Puls
+        g.fillStyle = '#94a3b8';
+        g.fillText('❤️ Yurak urishi (rPPG):', hudX + 12, hudY + 22);
+        g.fillStyle = info.pulse ? '#00e5a3' : '#e2e8f0';
+        g.fillText(info.pulse ? (info.pulse + ' bpm') : 'Hisoblanmoqda...', hudX + hudW - (info.pulse ? 52 : 90), hudY + 22);
+
+        // 2-qator: Teri rangi
+        g.fillStyle = '#94a3b8';
+        g.fillText('🔬 Teri pigmenti:', hudX + 12, hudY + 41);
+        g.fillStyle = '#00b4d8';
+        g.fillText(info.pallor != null ? (info.pallor + ' / 100') : '—', hudX + hudW - 48, hudY + 41);
+
+        // 3-qator: Barqarorlik
+        g.fillStyle = '#94a3b8';
+        g.fillText('⚡ Barqarorlik:', hudX + 12, hudY + 60);
+        g.fillStyle = '#ffb703';
+        g.fillText((Math.round(info.stability || 100) + '%'), hudX + hudW - 42, hudY + 60);
+
         g.restore();
       } else {
         // KOMPAKT: kadr pastki chetida bitta qator — yuzni yopmaydi
         const line = [
           info.status.toUpperCase(),
-          `${info.faceScore}%`,
-          `sifat ${info.quality}%`,
-          ...(info.pulse ? [`${info.pulse}bpm`] : []),
-          ...(info.pallor != null ? [`pigment ${info.pallor}`] : [])
+          (Math.round(info.faceScore || 0) + '%'),
+          ...(info.pulse ? [(info.pulse + ' bpm')] : []),
+          ...(info.pallor != null ? [('pigment ' + info.pallor)] : [])
         ].join(' · ');
         g.save();
-        g.font = '600 10.5px ui-monospace, Consolas, monospace';
+        g.font = '600 11px system-ui, -apple-system, sans-serif';
         const tw = g.measureText(line).width;
-        const px0 = Math.max(4, (w - tw) / 2 - 7);
-        const py0 = h - 22;
-        g.fillStyle = 'rgba(2,6,23,.78)';
-        g.fillRect(px0, py0, tw + 14, 17);
-        g.fillStyle = acc;
-        g.shadowColor = glow; g.shadowBlur = 6;
-        g.fillText(line, px0 + 7, py0 + 12);
+        const px0 = Math.max(6, (w - tw) / 2 - 10);
+        const py0 = h - 26;
+        g.fillStyle = 'rgba(7, 15, 28, 0.88)';
+        g.beginPath();
+        if (g.roundRect) g.roundRect(px0, py0, tw + 20, 20, 10);
+        else g.rect(px0, py0, tw + 20, 20);
+        g.fill();
+        g.strokeStyle = okColor;
+        g.lineWidth = 1;
+        g.stroke();
+        g.fillStyle = okColor;
+        g.fillText(line, px0 + 10, py0 + 14);
         g.restore();
       }
     }
 
-    _clearOverlay() {
+        _clearOverlay() {
       const c = this.overlay;
       if (c) c.getContext('2d').clearRect(0, 0, c.width, c.height);
     }

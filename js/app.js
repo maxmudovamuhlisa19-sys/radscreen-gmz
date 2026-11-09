@@ -297,6 +297,7 @@
 
     // kamera
     $('#btnCamStart').addEventListener('click', startCamera);
+    $('#btnCamStartHero')?.addEventListener('click', startCamera);
     $('#btnCamStop').addEventListener('click', stopCamera);
     const bSnap = $('#btnCamSnap');
     if (bSnap) bSnap.addEventListener('click', () => takeScreeningSnapshot());
