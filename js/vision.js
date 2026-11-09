@@ -361,10 +361,6 @@ window.VisionEngine = (() => {
         { facingMode: { ideal: 'user' } },
         true
       );
-        { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: { ideal: 'user' } },
-        { facingMode: { ideal: 'user' } },
-        true
-      ];
       let lastErr = null;
       for (const cand of attempts) {
         try {
