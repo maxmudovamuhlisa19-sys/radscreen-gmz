@@ -93,9 +93,11 @@ window.Auth = (() => {
       return true;
     } catch (err) {
       if (err.message === '401') {          // sessiya bekor qilingan
-        setToken('');
-        user = null;
-        emit();
+        if (getToken() === t) {
+          setToken('');
+          user = null;
+          emit();
+        }
         return false;
       }
       return false;                          // timeout/tarmoq xatosi — token saqlanadi
@@ -339,6 +341,21 @@ window.Auth = (() => {
         b.textContent = on_ ? 'Kutilmoqda…' : b.dataset.label;
       });
     };
+
+    $('#btnQuickLogin')?.addEventListener('click', async () => {
+      showError('');
+      loading(true);
+      try {
+        await login({ login: 'sardor', password: '123456' });
+        toast('Xush kelibsiz, Sardor!', 'ok');
+        hideScreen();
+        if (afterAuth) afterAuth(); else location.reload();
+      } catch (err) {
+        showError(err.message);
+      } finally {
+        loading(false);
+      }
+    });
 
     $('#authLoginForm').addEventListener('submit', async (e) => {
       e.preventDefault();

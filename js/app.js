@@ -48,11 +48,16 @@
 
   document.addEventListener('DOMContentLoaded', () => {
     window.Auth.setAfterAuth(() => boot());      // kirish — reloadsiz, darhol ilova
-    window.Auth.showScreen();                    // login oynasi darhol ko'rinadi
+    const hasToken = !!(window.Auth && window.Auth.getToken());
+    if (!hasToken) {
+      window.Auth.showScreen();
+    }
     window.Auth.restore(10000).then((ok) => {
       if (ok) {
         window.Auth.hideScreen();
         boot();
+      } else {
+        window.Auth.showScreen();
       }
     });
   });

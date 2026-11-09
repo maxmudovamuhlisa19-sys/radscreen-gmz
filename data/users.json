@@ -6,7 +6,7 @@
     "role": "operator",
     "salt": "aea472711a02f61b6ce64a9c20646a20",
     "hash": "998ad5a8295ae2954669e39301a88fd7be6df29a023f7e781df75675ba2e39ad0e8ddb071e2f39f8fde9d4e70ecf9eb710f9fbd638ad827983c200ec1604f280",
-    "token": "6981ad5a3313952615a6235645d7e051dcc1f9ff03fdb46e",
+    "token": "a6178b9bc91fa92d6f9854c67e585e03f3f7bf989715a3bd",
     "face": {
       "templates": [
         [
@@ -404,7 +404,7 @@
       "samples": 5
     },
     "createdAt": "2026-09-30T12:04:56.886Z",
-    "lastLogin": "2026-10-03T16:32:43.421Z"
+    "lastLogin": "2026-11-09T03:12:07.609Z"
   },
   {
     "id": "mur3swx7c43sad",
@@ -2451,5 +2451,17 @@
     "token": "980c5e578fb74e731931e3a814a358208e4329cef8b10708",
     "face": null,
     "createdAt": "2026-10-06T20:00:35.968Z"
+  },
+  {
+    "id": "mw8oktxoa5m643",
+    "login": "testuser_mw8oktvn",
+    "name": "Test Foydalanuvchi",
+    "role": "operator",
+    "nationality": "Ozbek",
+    "salt": "e18fab5d0778e1c0f97a4408b9868c3e",
+    "hash": "89da9ceb28a16e41fde0385192be6b55e46fb111a20a43487ac933f33ceb2920d66b9395c29517b5f8fa9949bb0d7226980a7941ea2749c5b7a2519cd22fdb69",
+    "token": "ecfa9a5869a831de9ad43d4962536081cbd10305203d4596",
+    "face": null,
+    "createdAt": "2026-11-09T03:07:36.973Z"
   }
 ]
