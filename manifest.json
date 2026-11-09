@@ -1,0 +1,20 @@
+{
+  "name": "RadSkrin — NMKG Radiatsion Nazorat va Tibbiy Skrining",
+  "short_name": "RadSkrin NMKG",
+  "description": "Navoiy kon-metallurgiya kombinati radiatsion xavfsizlik nazorati, 3D biometrik yuz skriningi va shifokor yo'llanmalari tizimi",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#030712",
+  "theme_color": "#00e5a3",
+  "icons": [
+    {
+      "src": "/icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["medical", "safety", "productivity"],
+  "lang": "uz"
+}

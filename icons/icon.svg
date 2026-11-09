@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#0b1b36"/>
+      <stop offset="60%" stop-color="#040b17"/>
+      <stop offset="100%" stop-color="#01040a"/>
+    </radialGradient>
+    <linearGradient id="neonGlow" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#00f0ff"/>
+      <stop offset="50%" stop-color="#00e5a3"/>
+      <stop offset="100%" stop-color="#00b4d8"/>
+    </linearGradient>
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="8" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
+  </defs>
+
+  <!-- Background Circle with Cyber Ring -->
+  <rect width="512" height="512" rx="128" fill="url(#bg)"/>
+  <rect width="496" height="496" x="8" y="8" rx="120" fill="none" stroke="#00e5a3" stroke-width="3" stroke-opacity="0.35"/>
+  <circle cx="256" cy="256" r="210" fill="none" stroke="#00b4d8" stroke-width="2" stroke-dasharray="14 10" stroke-opacity="0.4"/>
+  <circle cx="256" cy="256" r="180" fill="none" stroke="#00e5a3" stroke-width="1.5" stroke-opacity="0.25"/>
+
+  <!-- Radar / Biometric HUD Crosshairs -->
+  <line x1="256" y1="36" x2="256" y2="76" stroke="#00f0ff" stroke-width="3" stroke-linecap="round"/>
+  <line x1="256" y1="436" x2="256" y2="476" stroke="#00f0ff" stroke-width="3" stroke-linecap="round"/>
+  <line x1="36" y1="256" x2="76" y2="256" stroke="#00f0ff" stroke-width="3" stroke-linecap="round"/>
+  <line x1="436" y1="256" x2="476" y2="256" stroke="#00f0ff" stroke-width="3" stroke-linecap="round"/>
+
+  <!-- Radiation Trefoil Symbol in Glowing Cyan/Emerald -->
+  <g filter="url(#glow)">
+    <!-- Center Dot -->
+    <circle cx="256" cy="256" r="32" fill="url(#neonGlow)"/>
+
+    <!-- Top Blade -->
+    <path d="M 226,204 A 60,60 0 0,1 286,204 L 324,138 A 136,136 0 0,0 188,138 Z" fill="url(#neonGlow)"/>
+
+    <!-- Bottom Right Blade -->
+    <path d="M 282,271 A 60,60 0 0,1 252,323 L 290,389 A 136,136 0 0,0 408,321 Z" fill="url(#neonGlow)"/>
+
+    <!-- Bottom Left Blade -->
+    <path d="M 230,323 A 60,60 0 0,1 200,271 L 104,321 A 136,136 0 0,0 222,389 Z" fill="url(#neonGlow)"/>
+  </g>
+
+  <!-- Pulse EKG Line Overlay at bottom -->
+  <path d="M 96,410 L 170,410 L 186,390 L 202,434 L 218,375 L 234,420 L 246,410 L 416,410" fill="none" stroke="#00e5a3" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" opacity="0.85"/>
+
+  <!-- Subtitle badge: NMKG -->
+  <rect x="186" y="80" width="140" height="28" rx="14" fill="#070f1c" stroke="#00e5a3" stroke-width="1.5"/>
+  <text x="256" y="99" fill="#00e5a3" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, sans-serif" font-size="13" font-weight="800" text-anchor="middle" letter-spacing="2">NMKG BIO-RAD</text>
+</svg>

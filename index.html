@@ -9,7 +9,12 @@
   <title>RadSkrin — NMKG radiatsion nazorat va tibbiy skrining tizimi</title>
   <meta name="description" content="Radiatsiya dozasi, camera vision skriningi, biometrik Face ID, sog'liq yo'qotish foizi va shifokor yo'llanmasi — avtomatik intellektual tizim." />
   <link rel="stylesheet" href="css/styles.css?v=3.1" />
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>☢️</text></svg>" />
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#030712" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <link rel="icon" type="image/svg+xml" href="icons/icon.svg" />
+  <link rel="apple-touch-icon" href="icons/icon.svg" />
 </head>
 <body>
 
@@ -109,6 +114,11 @@
     <!-- Tovush tugmasi -->
     <button class="btn-icon" id="btnAudioToggle" title="Ovoz (Geiger / Siren)">
       <span class="icon-sound" id="iconSound">🔊</span>
+    </button>
+
+    <!-- PWA Dasturni o'rnatish -->
+    <button class="btn btn-ghost btn-sm" id="btnInstallApp" title="Dasturni kompyuter yoki telefonga o'rnatish" style="display:none; font-size:11px; padding: 4px 8px; border-color: rgba(56, 189, 248, 0.45); color: #38bdf8;">
+      📲 Ilovani o'rnatish
     </button>
 
     <!-- Til tanlash -->
@@ -286,6 +296,37 @@
 
 <!-- ============================= CAMERA VISION ============================= -->
 <section class="page" id="page-vision">
+  <!-- Tezkor Klinik Namoyish / Ssenariylar -->
+  <div class="demo-strip" id="demoScenariosStrip">
+    <div class="ds-head">
+      <span class="ds-icon">⚡</span>
+      <span class="ds-title">TEZKOR KLINIK NAMOYISH (1-CHERTISH BILAN REAL TEST):</span>
+    </div>
+    <div class="ds-grid">
+      <button type="button" class="ds-btn ds-safe" id="btnScenarioSafe" title="0.16 µSv/h · Sog'lom fon">
+        <span class="ds-indicator"></span>
+        <div class="ds-body">
+          <b>🟢 1-Ssenariy: Normal Fon (0.16 µSv/h)</b>
+          <small>Sog'lom xodim · puls 72 bpm · 0% yo'qotish · ovozli xulosa</small>
+        </div>
+      </button>
+      <button type="button" class="ds-btn ds-warn" id="btnScenarioWarn" title="1.85 µSv/h · Eritma sexi">
+        <span class="ds-indicator"></span>
+        <div class="ds-body">
+          <b>🟡 2-Ssenariy: Sexda Doza Oshishi (1.85 µSv/h)</b>
+          <small>Charchoq, bosh aylanishi · 34% yo'qotish · II guruh · dispanser</small>
+        </div>
+      </button>
+      <button type="button" class="ds-btn ds-danger" id="btnScenarioDanger" title="14.2 µSv/h · Reaktor avariyasi">
+        <span class="ds-indicator"></span>
+        <div class="ds-body">
+          <b>🔴 3-Ssenariy: Favqulodda Avariya (14.2 µSv/h)</b>
+          <small>Ko'ngil aynishi, qizarish · 78% · Shoshilinch shifoxona</small>
+        </div>
+      </button>
+    </div>
+  </div>
+
   <div class="grid grid-c">
     <div class="card cam-card">
       <div class="card-head">
@@ -800,6 +841,7 @@
 <script defer src="js/vision.js?v=3.0"></script>
 <script defer src="js/alcohol.js?v=3.0"></script>
 <script defer src="js/store.js?v=3.0"></script>
+<script defer src="js/qr.js?v=3.0"></script>
 <script defer src="js/ui.js?v=3.0"></script>
 <script defer src="js/auth.js?v=3.0"></script>
 <script defer src="js/app.js?v=3.0"></script>

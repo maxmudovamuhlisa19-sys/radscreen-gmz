@@ -331,6 +331,35 @@
       UI.toast(on ? '3D Fazoviy Biometriya yoqildi' : '2D Oddiy rejimga o\'tildi', 'ok');
     });
 
+    // Tezkor klinik demo ssenariylar
+    $('#btnScenarioSafe')?.addEventListener('click', () => runDemoScenario('safe'));
+    $('#btnScenarioWarn')?.addEventListener('click', () => runDemoScenario('warn'));
+    $('#btnScenarioDanger')?.addEventListener('click', () => runDemoScenario('danger'));
+
+    // PWA O'rnatish hodisasi (Desktop / Mobile Standalone App)
+    let deferredInstallPrompt = null;
+    const btnInstall = $('#btnInstallApp');
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredInstallPrompt = e;
+      if (btnInstall) btnInstall.style.display = 'inline-flex';
+    });
+    if (btnInstall) {
+      btnInstall.addEventListener('click', async () => {
+        if (!deferredInstallPrompt) {
+          UI.toast("Ilovani brauzer menyusi (Uch nuqta -> 'O'rnatish') orqali o'rnatishingiz mumkin", 'info', 6000);
+          return;
+        }
+        deferredInstallPrompt.prompt();
+        const choice = await deferredInstallPrompt.userChoice;
+        if (choice.outcome === 'accepted') {
+          UI.toast("RadSkrin muvaffaqiyatli o'rnatildi!", 'ok');
+          btnInstall.style.display = 'none';
+        }
+        deferredInstallPrompt = null;
+      });
+    }
+
     // tahlil
     $('#btnAnalyze').addEventListener('click', runAnalysis);
     $('#btnSaveReferral').addEventListener('click', saveReferral);
@@ -928,8 +957,16 @@
     }
     updateStatus();
     UI.toast(`Tanildi: ${person.name} (${isUser ? person.role : person.year})`, 'ok');
-    // AI: ism + kasalliklar xulosasi (ekran + ovoz)
-    runAiDiagnosis({ person, auto: true });
+    if (window.RadAudio) window.RadAudio.playLockChime();
+
+    // AI ovozli salomlashish (uz-UZ-MadinaNeural)
+    const greeting = isUser
+      ? `Assalomu alaykum, ${person.name}! Shaxsingiz Face ID orqali tasdiqlandi. 3D biometrik nazorat faol.`
+      : `Assalomu alaykum, ${person.name}! Shaxsingiz tasdiqlandi. Tibbiy skrining boshlandi.`;
+    aiSay(greeting, 'uz');
+
+    // AI: ism + kasalliklar xulosasi (ekran)
+    runAiDiagnosis({ person, auto: true, voice: false });
   }
 
   function clearIdentity() {
@@ -1429,6 +1466,7 @@
 
   function speakText(text, lang) {
     if (!window.RemoteTTS) return;
+    if (window.RadAudio && !window.RadAudio.isEnabled) return;
     const want = lang === 'ru' ? 'ru' : 'uz';
     RemoteTTS.stop();
     setStop(true);
@@ -1745,10 +1783,83 @@
     recalc();
   }
 
+  /* ===================== TEZKOR KLINIK SSENARIYLAR =================== */
+  function updateVisionUi(v) {
+    if (!v) return;
+    $('#cPresence').textContent = `${v.presence}%`;
+    $('#cPallor').textContent = `${v.pallor}`;
+    $('#cPulse').textContent = `${v.pulse} bpm`;
+    $('#cStability').textContent = `${Math.round(v.stability)}%`;
+    const bpmTxt = $('#liveBpmTxt');
+    if (bpmTxt) bpmTxt.textContent = `${v.pulse} bpm`;
+    UI.progress($('#barPresence'), v.presence, v.presence > 45 ? '#22c55e' : '#eab308');
+    UI.progress($('#barPallor'), v.pallor, v.pallor > 55 ? '#22c55e' : '#eab308');
+    UI.progress($('#barPulse'), Math.min(100, (v.pulse / 140) * 100), '#4ade80');
+    UI.progress($('#barStability'), v.stability, '#38bdf8');
+  }
+
+  function runDemoScenario(key) {
+    if (window.RadAudio) window.RadAudio.playUiClick();
+    const chkContainer = $('#symptomChecks');
+    const allChecks = chkContainer ? chkContainer.querySelectorAll('input[type="checkbox"]') : [];
+
+    if (key === 'safe') {
+      syncRate(0.16);
+      state.symptoms.clear();
+      allChecks.forEach((cb) => {
+        cb.checked = false;
+        cb.closest('.check')?.classList.remove('on');
+      });
+      state.vision = {
+        found: true, parsed: true, presence: 96, pallor: 94, pulse: 72, pulseConfidence: 96,
+        stability: 98, quality: 94, status: 'yuz barqarar',
+        pose3d: { yaw: 2, pitch: -3, roll: 0, zDepthCm: 50 },
+        landmarks: []
+      };
+      updateVisionUi(state.vision);
+      runAnalysis({ speech: "1-ssenariy: Normal fon. Doza tezligi 0.16 mikro-zivert soat. Xodim sog'lom, me'yordan og'ish aniqlanmadi." });
+      UI.toast("1-Ssenariy: Normal Fon (0.16 µSv/h) faollashtirildi", 'ok');
+    } else if (key === 'warn') {
+      syncRate(1.85);
+      state.symptoms = new Set(['fatigue', 'dizzy']);
+      allChecks.forEach((cb) => {
+        const on = cb.value === 'fatigue' || cb.value === 'dizzy';
+        cb.checked = on;
+        cb.closest('.check')?.classList.toggle('on', on);
+      });
+      state.vision = {
+        found: true, parsed: true, presence: 90, pallor: 62, pulse: 88, pulseConfidence: 90,
+        stability: 88, quality: 86, status: 'yuz barqarar',
+        pose3d: { yaw: -5, pitch: 4, roll: 1, zDepthCm: 48 },
+        landmarks: []
+      };
+      updateVisionUi(state.vision);
+      runAnalysis({ speech: "2-ssenariy: Doza me'yordan oshdi: 1.85 mikro-zivert soat. Sog'liq yo'qotish 34 foiz. Dispanser nazorati tavsiya etiladi." });
+      UI.toast("2-Ssenariy: Sexda Doza Oshishi (1.85 µSv/h) faollashtirildi", 'warn');
+    } else if (key === 'danger') {
+      syncRate(14.2);
+      state.symptoms = new Set(['nausea', 'redskin', 'fatigue', 'dizzy']);
+      allChecks.forEach((cb) => {
+        const on = ['nausea', 'redskin', 'fatigue', 'dizzy'].includes(cb.value);
+        cb.checked = on;
+        cb.closest('.check')?.classList.toggle('on', on);
+      });
+      state.vision = {
+        found: true, parsed: true, presence: 84, pallor: 36, pulse: 114, pulseConfidence: 85,
+        stability: 78, quality: 80, status: 'yuz barqarar',
+        pose3d: { yaw: 8, pitch: -6, roll: -2, zDepthCm: 44 },
+        landmarks: []
+      };
+      updateVisionUi(state.vision);
+      runAnalysis({ speech: "Favqulodda holat! Doza tezligi 14.2 mikro-zivert soat! Zudlik bilan hududni tark eting va radiatsion gospitalga murojaat qiling!" });
+      UI.toast("3-Ssenariy: Favqulodda Avariya (14.2 µSv/h) faollashtirildi!", 'error');
+    }
+  }
+
   /* ============================= ANALYSIS =========================== */
-  function runAnalysis() {
+  function runAnalysis(opts = {}) {
     const vis = $('#visionRate');
-    if (vis.value !== '') {
+    if (vis && vis.value !== '') {
       state.rate = Math.max(0, Number(vis.value) || 0);
     }
     if (!state.vision && engine.running) state.vision = engine.latest;
@@ -1792,8 +1903,16 @@
     if (window.RadAudio) window.RadAudio.playSuccessChime();
     UI.toast(`Tahlil yakunlandi: ${a.healthLoss}% — ${a.risk.label}`, a.referralNeeded ? 'warn' : 'ok', 5000);
 
-    // AI xulosasi: kasallik bor/yo'q ro'yxatini ham yangilaymiz
-    runAiDiagnosis({});
+    // Ovozli xulosa (uz-UZ-MadinaNeural)
+    if (opts.voice !== false) {
+      const speechMsg = opts.speech || (a.healthLoss === 0
+        ? `Klinik tahlil yakunlandi. Radiatsiya foni normal, ${a.doses.rate} mikro-zivert soat. Xodim sog'lom, ko'rsatkichlar me'yorda.`
+        : `Klinik tahlil yakunlandi. Sog'liq yo'qotish koeffitsiyenti: ${a.healthLoss} foiz. ${a.risk.label}. ${a.referralNeeded ? "Ixtisoslashtirilgan shifokorga yo'llanma berildi." : "Profilaktik kuzatuv tavsiya etiladi."}`);
+      setTimeout(() => aiSay(speechMsg, 'uz'), 350);
+    }
+
+    // AI xulosasi: kasallik bor/yo'q ro'yxatini ham yangilaymiz (ovozsiz, chunki yuqorida o'qildi)
+    runAiDiagnosis({ voice: false });
   }
 
   function renderRefPreview(r) {
@@ -1920,16 +2039,24 @@
         </div>
 
         <div class="cert-footer-row">
+          <div class="cert-qr-col">
+            ${window.RadQR ? RadQR.toSVG(window.location.origin + '/#verify=' + docId, { size: 84 }) : ''}
+            <div style="font-size:7pt; color:#475569; margin-top:3px; font-family:Courier,monospace;">QR: ELEKTRON TEKSHIRUV</div>
+          </div>
           <div class="cert-sign-col">
             <div><b>Tekshiruvchi mutaxassis / Shifokor:</b> _________________________ (imzo)</div>
             <div><b>Xodim / Bemor tanishdi:</b> _________________________ (imzo)</div>
             <div>Sana va vaqt: ${now}</div>
           </div>
-          <div class="cert-stamp">
-            <div>O'ZBEKISTON RESPUBLIKASI</div>
-            <div style="font-size:13pt;margin:2px 0;">★</div>
-            <div>NMKG TIBBIY-SANITARIYA QISMI</div>
-            <div style="font-size:6.5pt;margin-top:2px;">TASDIQLANDI</div>
+          <div class="cert-stamp-box">
+            ${window.RadQR ? RadQR.toStampSVG(docId) : `
+              <div class="cert-stamp">
+                <div>O'ZBEKISTON RESPUBLIKASI</div>
+                <div style="font-size:13pt;margin:2px 0;">★</div>
+                <div>NMKG TIBBIY-SANITARIYA QISMI</div>
+                <div style="font-size:6.5pt;margin-top:2px;">TASDIQLANDI</div>
+              </div>
+            `}
           </div>
         </div>
       </div>`;
@@ -2125,5 +2252,5 @@
   }
 
   // Support / test uchun kichik hook (xavfsiz, faqat o'qish-mutatsiya)
-  window.RadDebug = { state, feedIdentity, confirmIdentity, clearIdentity, runAnalysis, loadPatients, loadUserFaces, runAiDiagnosis };
+  window.RadDebug = { state, feedIdentity, confirmIdentity, clearIdentity, runAnalysis, loadPatients, loadUserFaces, runAiDiagnosis, runDemoScenario };
 })();
